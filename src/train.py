@@ -96,6 +96,8 @@ def train(filepath):
         metrics = "mse"
         monitor_metric = "loss"
 
+
+
     # Build model
     if learning_method == "cnn":
         hist_size = X_train.shape[-2]
@@ -160,6 +162,21 @@ def train(filepath):
             model = SVC()
         else:
             model = SVR()
+    elif learning_method == 'brnn':
+        model = nn.brnn(data_size=X_train.shape[0],
+                        window_size=X_train.shape[1],
+                        feature_size=X_train.shape[2],
+                        batch_size=params["batch_size"],
+                        hidden_size=params["hidden_size"])
+    elif learning_method == 'bcnn':
+        model = nn.bcnn(data_size=X_train.shape[0],
+                        window_size=X_train.shape[1],
+                        feature_size=X_train.shape[2],
+                        batch_size=params["batch_size"],
+                        kernel_size=params["kernel_size"],
+                        n_steps_out=params["n_step_out"],
+                        output_activation=output_activation,
+                        classification=classification)
     else:
         raise NotImplementedError(f"Learning method {learning_method} not implemented.")
 

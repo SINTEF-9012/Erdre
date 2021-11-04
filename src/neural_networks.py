@@ -297,15 +297,6 @@ def bcnn(data_size, window_size, feature_size, batch_size, kernel_size=5, n_step
 
     """
 
-    #
-    #      Args:
-    #          output_activation:
-    #          classification:
-    #
-    #      Returns:
-    #          model: Compiled Keras model.
-
-
 
 
     # KL divergence weighted by the number of training samples, using

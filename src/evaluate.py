@@ -34,6 +34,14 @@ from sklearn.metrics import (
 from sklearn.neighbors import KNeighborsRegressor
 from tensorflow.keras import metrics, models
 
+import tensorflow as tf
+import tensorflow_probability as tfp
+import neural_networks as nn
+tfk = tf.keras
+tfkl = tf.keras.layers
+tfpl = tfp.layers
+tfd = tfp.distributions
+
 import neural_networks as nn
 from config import (
     DATA_PATH,
@@ -189,6 +197,64 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
     else:
         if learning_method in NON_DL_METHODS:
             model = load(model_filepath)
+        elif learning_method == 'brnn':
+            model = nn.brnn(data_size=X_test.shape[0],
+                            window_size=X_test.shape[1],
+                            feature_size=X_test.shape[2],
+                            hidden_size=params_train["hidden_size"],
+                            batch_size=params_train["batch_size"])
+            model.load_weights(model_filepath)
+            # X_test[300:305, :, :] = 3
+            signal_start = 1000
+            signal_end = 500
+            # for i in range(signal_start, signal_start+signal_end):
+            #     # Add Noise to right half of X
+            #     # np_X_test[300:600, signal] += np.random.normal(0, np.std(np_X_test[:, signal]), 300)
+            #     # np_X_test[300:600, i] += np.random.normal(0, np.std(np_X_test[:, i]), 300)
+            #
+            #     # Add drift to right half of X
+            #     drift_range = 0.2 * np.max(X_test[:,-1, 0]) - np.min(X_test[:,-1, 0])
+            #     #print(drift_range)
+            #     # np_X_test[300:600, i] += [-1,1][random.randrange(2)]* np.linspace(0, drift_range, 300)
+            #     X_test[-signal_end:,0, 0] += np.linspace(0, drift_range, signal_end)
+
+            y_pred = model(X_test)
+            assert isinstance(y_pred, tfd.Distribution)
+
+            mean = y_pred.mean().numpy()
+            stddev = y_pred.stddev().numpy()
+
+            epistemic = compute_epistemic(model=model, test_data=X_test, iterations=200)
+            aleatoric = np.squeeze(stddev)
+            total_unc = np.sqrt(aleatoric ** 2 + epistemic ** 2)
+
+            prediction_interval_plot(true_data=y_test[:, -1], predicted_mean=mean, predicted_std=total_unc,
+                                     plot_path=PLOTS_PATH, file_name="confidence_plot.html",
+                                     experiment_length=len(X_test))
+        elif learning_method == 'bcnn':
+
+            model = nn.bcnn(data_size=X_test.shape[0], window_size=X_test.shape[1], feature_size=X_test.shape[2],
+                            batch_size=params_train["batch_size"], kernel_size=params_train["kernel_size"])
+            model.load_weights(model_filepath)
+
+            input_columns = pd.read_csv(DATA_PATH / "input_columns.csv").values.tolist()[0][1:]
+            X_test[300:305, :, :] = 3
+            y_pred = model(X_test)
+
+            assert isinstance(y_pred, tfd.Distribution)
+            mean = y_pred.mean().numpy()
+            stddev = y_pred.stddev().numpy()
+
+            epistemic = compute_epistemic(model=model, test_data=X_test, iterations=100)
+            aleatoric = np.squeeze(stddev)
+
+            # uncertainties can be accurately predicted by the superposition of these uncertainties
+            total_unc = np.sqrt(aleatoric ** 2 + epistemic ** 2)
+            prediction_interval_plot(true_data=y_test[:, 0], predicted_mean=mean, predicted_std=total_unc,
+                             plot_path=PLOTS_PATH, file_name="confidence_plot.html", experiment_length=len(X_test))
+
+            # Use the training data for deep explainer => can use fewer instances
+            # Fit the normalizer.
         else:
             model = models.load_model(model_filepath)
 
@@ -255,7 +321,27 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
         with open(METRICS_FILE_PATH, "w") as f:
             json.dump(dict(mse=mse, r2=r2), f)
 
+def compute_epistemic(model, test_data, iterations=100):
+    """ A function to compute epistemic uncertainty of a probabilistic model
+    based on Ensemble method
 
+    Args:
+        model: Probabilistic gaussian model
+        test_data: test dataset
+        iterations: number of iteration
+
+    Returns: (float) representing epistemic uncertainty of the model
+
+    """
+    predicted = []
+    for _ in range(iterations):
+        predicted.append(model(test_data).mean().numpy())
+    predicted = np.concatenate(predicted, axis=1)
+
+    min = np.min(predicted, axis=1)
+    max = np.max(predicted, axis=1)
+    prediction_range = max - min
+    return np.sqrt(np.square(prediction_range))
 def plot_confusion(y_test, y_pred):
     """Plotting confusion matrix of a classification model."""
 
@@ -444,6 +530,70 @@ def plot_sequence_predictions(y_true, y_pred):
     PREDICTION_PLOT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     fig.write_html(str(PLOTS_PATH / "prediction_sequences.html"))
+def prediction_interval_plot(true_data, predicted_mean, predicted_std,
+                     plot_path, file_name="Uncertainty_plot.html", experiment_length=5000):
+    """ This function plots 95% prediction interval for bayesian neural network with gaussain output
+
+    Args:
+        true_data:  (ndarray) label of test dataset
+        predicted_mean:  (ndarray) mean of predicted test data
+        predicted_std:  (ndarray) standerd deviation of predicted test data
+        plot_path: (path object) path to where the plot to be saved
+        file_name: (str) name of saved plot
+        experiment_length: length of plot along x-axis
+
+    Returns: None
+
+    """
+    x_idx = np.arange(0, experiment_length, 1)
+    fig = go.Figure([
+        go.Scatter(
+            name='Original measurement',
+            x=x_idx,
+            y=np.squeeze(true_data[0:experiment_length]),
+            mode='lines',
+            line=dict(color='rgb(31, 119, 180)'),
+        ),
+        go.Scatter(
+            name='predicted values ',
+            x=x_idx,
+            y=np.squeeze(predicted_mean[0:experiment_length]),
+            mode='lines',
+            #marker=dict(color="#444"),
+            line=dict(color='rgb(255, 10, 10)'),
+            showlegend=True
+        ),
+        go.Scatter(
+            name='95% prediction interval',
+            x=x_idx,
+            y=np.squeeze(predicted_mean[0:experiment_length]) - 1.96*predicted_std[0:experiment_length],
+            mode='lines',
+            marker=dict(color="#444"),
+            line=dict(width=0),
+            showlegend=False
+        ),
+        go.Scatter(
+            name='95% prediction interval',
+            x=x_idx,
+            y=np.squeeze(predicted_mean[0:experiment_length]) +1.96*predicted_std[0:experiment_length],
+            marker=dict(color="#444"),
+            line=dict(width=0),
+            mode='lines',
+            fillcolor='rgba(68, 68, 68, 0.3)',
+            fill='tonexty',
+            showlegend=True
+        )
+    ])
+    fig.update_layout(
+        yaxis_title='target vs predicted',
+        title='Uncertainty estimation',
+        hovermode="x"
+    )
+    #fig.update_yaxes(range=[-10, 10])
+    #fig.update(layout_yaxis_range=[-5, 5])
+    fig.show()
+    if plot_path is not None:
+        fig.write_html(str(plot_path / file_name))
 
 
 if __name__ == "__main__":
