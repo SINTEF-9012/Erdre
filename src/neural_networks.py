@@ -287,9 +287,9 @@ def bcnn(data_size, window_size, feature_size, batch_size, kernel_size=5, n_step
         feature_size: (int) Number of features(sensors) used as an input
         batch_size: (int) Size of single batch used as an input
         '
-        kernel_size: (int) Size of kernel in CNN
+        kernel_size: (int,default : 5) Size of kernel in CNN
 
-        n_steps_out: (int)  Number of output steps.
+        n_steps_out: (int,default : 2)  Number of output classes for classification.
         classification: (boolean, default: False). True if the model is used for classification tasts
         output_activation: (str or tf.nn.activation, default "linear")
 
@@ -318,16 +318,20 @@ def bcnn(data_size, window_size, feature_size, batch_size, kernel_size=5, n_step
     flatten_layer_outputs = tf.keras.layers.Flatten(name='flatten_layer')(batch_norm_2_outputs)
     layer_3_outputs = tfp.layers.DenseFlipout(
         32, kernel_divergence_fn=kl_divergence_function, name="dense1")(flatten_layer_outputs)
-    layer_4_outputs = tfp.layers.DenseFlipout(
-        n_steps_out, kernel_divergence_fn=kl_divergence_function, name="dense2", activation=output_activation)(
-        layer_3_outputs)
+
 
     if classification:
+        layer_4_outputs = tfp.layers.DenseFlipout(
+            n_steps_out, kernel_divergence_fn=kl_divergence_function, name="dense2", activation=output_activation)(
+            layer_3_outputs)
         outputs = tfp.distributions.Categorical(
             logits=layer_4_outputs, probs=None, dtype=tf.int32, validate_args=False,
             allow_nan_stats=True, name='Categorical'
         )
     else:
+        layer_4_outputs = tfp.layers.DenseFlipout(
+            2, kernel_divergence_fn=kl_divergence_function, name="dense2", activation=output_activation)(
+            layer_3_outputs)
         loc = layer_4_outputs[..., :1]
         c = np.log(np.expm1(1.))
         scale_diag = 1e-5 + tf.nn.softplus(c + layer_4_outputs[..., 1:])  ##tf.nn.softplus(outputs[..., 1:]) + 1e-5
