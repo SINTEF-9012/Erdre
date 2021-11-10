@@ -257,8 +257,7 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
             # Fit the normalizer.
         else:
             model = models.load_model(model_filepath)
-
-        y_pred = model.predict(X_test)
+            y_pred = model.predict(X_test)
 
         if onehot_encode_target:
             y_pred = np.argmax(y_pred, axis=-1)
@@ -306,13 +305,22 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
 
     # Regression:
     else:
-        mse = mean_squared_error(y_test, y_pred)
-        r2 = r2_score(y_test, y_pred)
+        if learning_method == 'bcnn' or learning_method == 'brnn':
 
-        print("MSE: {}".format(mse))
-        print("R2: {}".format(r2))
+            mse = mean_squared_error(y_test[:, -1], mean[:, -1])
+            r2 = r2_score(y_test[:, -1], mean[:, -1])
+            print("MSE: {}".format(mse))
+            print("R2: {}".format(r2))
+            plot_prediction(y_test[:,-1], mean[:,-1], inputs=None, info="(R2: {})".format(r2))
 
-        plot_prediction(y_test, y_pred, inputs=None, info=f"(R2: {r2:.2f})")
+        else:
+            mse = mean_squared_error(y_test, y_pred)
+            r2 = r2_score(y_test, y_pred)
+
+            print("MSE: {}".format(mse))
+            print("R2: {}".format(r2))
+
+            plot_prediction(y_test, y_pred, inputs=None, info=f"(R2: {r2:.2f})")
 
         # Only plot predicted sequences if the output samples are sequences.
         if len(y_test.shape) > 1 and y_test.shape[1] > 1:
