@@ -222,10 +222,10 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
             assert isinstance(y_pred, tfd.Distribution)
 
             mean = y_pred.mean().numpy()
-            stddev = y_pred.stddev().numpy()
 
-            epistemic = compute_epistemic(model=model, test_data=X_test, iterations=200)
-            aleatoric = np.squeeze(stddev)
+
+            aleatoric,epistemic = compute_uncertainty(model=model, test_data=X_test, iterations=200)
+
             total_unc = np.sqrt(aleatoric ** 2 + epistemic ** 2)
 
             prediction_interval_plot(true_data=y_test[:, -1], predicted_mean=mean, predicted_std=total_unc,
@@ -243,10 +243,10 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
 
             assert isinstance(y_pred, tfd.Distribution)
             mean = y_pred.mean().numpy()
-            stddev = y_pred.stddev().numpy()
 
-            epistemic = compute_epistemic(model=model, test_data=X_test, iterations=100)
-            aleatoric = np.squeeze(stddev)
+
+            aleatoric,epistemic = compute_uncertainty(model=model, test_data=X_test, iterations=100)
+
 
             # uncertainties can be accurately predicted by the superposition of these uncertainties
             total_unc = np.sqrt(aleatoric ** 2 + epistemic ** 2)
@@ -329,27 +329,36 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
         with open(METRICS_FILE_PATH, "w") as f:
             json.dump(dict(mse=mse, r2=r2), f)
 
-def compute_epistemic(model, test_data, iterations=100):
-    """ A function to compute epistemic uncertainty of a probabilistic model
-    based on Ensemble method
 
-    Args:
-        model: Probabilistic gaussian model
-        test_data: test dataset
-        iterations: number of iteration
+def compute_uncertainty(model, test_data, iterations=100):
+    """ A function to compute aleatoric and epistemic uncertainty of a probabilistic Gaussain model
+       based on Ensemble method
 
-    Returns: (float) representing epistemic uncertainty of the model
+       Args:
+           model: Probabilistic gaussian model
+           test_data: test dataset
+           iterations: number of iteration
 
-    """
-    predicted = []
+       Returns: (tuple of of ndarray) representing aleatoric and epistemic uncertainty of the model
+
+       """
+    means = []
+    stddevs =[]
     for _ in range(iterations):
-        predicted.append(model(test_data).mean().numpy())
-    predicted = np.concatenate(predicted, axis=1)
+        means.append(model(test_data).mean().numpy())
+        stddevs.append(model(test_data).stddev().numpy())
 
-    min = np.min(predicted, axis=1)
-    max = np.max(predicted, axis=1)
-    prediction_range = max - min
-    return np.sqrt(np.square(prediction_range))
+    means = np.concatenate(means, axis=1)
+    stddevs = np.concatenate(stddevs, axis=1)
+    overall_mean = np.mean(means, axis=1)
+
+    aleatoric= np.mean(stddevs,axis=1)
+    epistemic =np.sqrt(np.mean(means**2,axis=1)-overall_mean**2)
+
+    return aleatoric,epistemic
+
+
+
 def plot_confusion(y_test, y_pred):
     """Plotting confusion matrix of a classification model."""
 
