@@ -312,20 +312,26 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
 
     # Regression:
     else:
-        mse = mean_squared_error(y_test, y_pred)
-        rmse = mean_squared_error(y_test, y_pred, squared=False)
-        mape = mean_absolute_percentage_error(y_test, y_pred)
-        r2 = r2_score(y_test, y_pred)
+
+        if learning_method == 'bcnn' or learning_method == 'brnn':
+            mse = mean_squared_error(y_test[:, -1], mean[:, -1])
+            rmse = mean_squared_error(y_test[:, -1], mean[:, -1], squared=False)
+            mape = mean_absolute_percentage_error(y_test[:, -1], mean[:, -1])
+            r2 = r2_score(y_test[:, -1], mean[:, -1])
+
+            plot_prediction(y_test[:,-1], mean[:,-1], inputs=None, info="(R2: {})".format(r2))
+        else:
+            mse = mean_squared_error(y_test, y_pred)
+            rmse = mean_squared_error(y_test, y_pred, squared=False)
+            mape = mean_absolute_percentage_error(y_test, y_pred)
+            r2 = r2_score(y_test, y_pred)
+        
+            plot_prediction(y_test, y_pred, inputs=None, info=f"(R2: {r2:.2f})")
 
         print("MSE: {}".format(mse))
         print("RMSE: {}".format(rmse))
         print("MAPE: {}".format(mape))
         print("R2: {}".format(r2))
-
-        if learning_method == 'bcnn' or learning_method == 'brnn':
-            plot_prediction(y_test[:,-1], mean[:,-1], inputs=None, info="(R2: {})".format(r2))
-        else:
-            plot_prediction(y_test, y_pred, inputs=None, info=f"(R2: {r2:.2f})")
 
         # Only plot predicted sequences if the output samples are sequences.
         if len(y_test.shape) > 1 and y_test.shape[1] > 1:
@@ -618,7 +624,8 @@ def prediction_interval_plot(true_data, predicted_mean, predicted_std,
     )
     #fig.update_yaxes(range=[-10, 10])
     #fig.update(layout_yaxis_range=[-5, 5])
-    fig.show()
+    # fig.show()
+
     if plot_path is not None:
         fig.write_html(str(plot_path / file_name))
 
