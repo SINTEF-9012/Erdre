@@ -5,7 +5,7 @@ clean:
   input_max_correlation_threshold: 1.0
   onehot_encode_target: false
   percentage_zeros_threshold: 1.0
-  target: cnc_milling
+  target: X1_ActualPosition
 evaluate: null
 featurize:
   add_rolling_features: false
@@ -36,4 +36,4 @@ train:
   n_epochs: 10
   patience: 3
   train: False
-  n_step_out: 1
+  n_step_out: 2
