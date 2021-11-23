@@ -5,7 +5,7 @@ clean:
   input_max_correlation_threshold: 1.0
   onehot_encode_target: false
   percentage_zeros_threshold: 1.0
-  target: Accel_FFT_Acc1_range1_Amplitudes_0
+  target: cnc_milling
 evaluate: null
 featurize:
   add_rolling_features: false
@@ -14,7 +14,7 @@ featurize:
   rolling_window_size: 100
   target_min_correlation_threshold: 0.0
 profile:
-  dataset: ideko
+  dataset: cnc_milling
 scale:
   input: minmax
   output: null
@@ -23,7 +23,7 @@ sequentialize:
   overlap: 0
   shuffle_samples: false
   target_size: 1
-  window_size: 15
+  window_size: 10
 split:
   calibrate_split: 0.0
   shuffle_files: false
@@ -33,7 +33,7 @@ train:
   early_stopping: true
   kernel_size: 3
   learning_method: bcnn
-  n_epochs: 40
+  n_epochs: 10
   patience: 3
   train: False
-  n_step_out: 2
+  n_step_out: 1
