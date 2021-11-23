@@ -32,7 +32,8 @@ train:
   batch_size: 256
   early_stopping: true
   kernel_size: 3
-  learning_method: cnn
-  n_epochs: 200
-  patience: 40
-  train: true
+  learning_method: bcnn
+  n_epochs: 40
+  patience: 3
+  train: False
+  n_step_out: 2
