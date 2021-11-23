@@ -167,13 +167,13 @@ def train(filepath):
         model = nn.brnn(data_size=X_train.shape[0],
                         window_size=X_train.shape[1],
                         feature_size=X_train.shape[2],
-                        batch_size=params["batch_size"],
+                        batch_size=1,
                         hidden_size=5)  # TODO: Make this into a parameter
     elif learning_method == 'bcnn':
         model = nn.bcnn(data_size=X_train.shape[0],
                         window_size=X_train.shape[1],
                         feature_size=X_train.shape[2],
-                        batch_size=params["batch_size"],
+                        batch_size=1,
                         kernel_size=params["kernel_size"],
                         n_steps_out=params["n_step_out"],
                         output_activation=output_activation,
