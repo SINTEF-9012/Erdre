@@ -9,18 +9,27 @@ Date:
     2020-09-16
 
 """
+import numpy as np
+import tensorflow as  tf
 from tensorflow.keras import layers, models, optimizers
-from tensorflow.random import set_seed
 
+import tensorflow_probability as tfp
+
+tfk = tf.keras
+tfkl = tf.keras.layers
+tfpl = tfp.layers
+tfd = tfp.distributions
+
+import edward2 as ed
 
 def cnn(
-    input_x,
-    input_y,
-    output_length=1,
-    kernel_size=2,
-    output_activation="linear",
-    loss="mse",
-    metrics="mse",
+        input_x,
+        input_y,
+        output_length=1,
+        kernel_size=2,
+        output_activation="linear",
+        loss="mse",
+        metrics="mse",
 ):
     """Define a CNN model architecture using Keras.
 
@@ -71,13 +80,13 @@ def cnn(
 
 
 def cnn2(
-    input_x,
-    input_y,
-    output_length=1,
-    kernel_size=2,
-    output_activation="linear",
-    loss="mse",
-    metrics="mse",
+        input_x,
+        input_y,
+        output_length=1,
+        kernel_size=2,
+        output_activation="linear",
+        loss="mse",
+        metrics="mse",
 ):
     """Define a CNN model architecture using Keras.
 
@@ -144,12 +153,12 @@ def cnn2(
 
 
 def dnn(
-    input_x,
-    output_length=1,
-    seed=2020,
-    output_activation="linear",
-    loss="mse",
-    metrics="mse",
+        input_x,
+        output_length=1,
+        seed=2020,
+        output_activation="linear",
+        loss="mse",
+        metrics="mse",
 ):
     """Define a DNN model architecture using Keras.
 
@@ -163,7 +172,7 @@ def dnn(
 
     """
 
-    set_seed(seed)
+    tf.random.set_seed(seed)
 
     model = models.Sequential()
     model.add(layers.Dense(16, activation="relu", input_dim=input_x))
@@ -178,12 +187,12 @@ def dnn(
 
 
 def lstm(
-    hist_size,
-    n_features,
-    n_steps_out=1,
-    output_activation="linear",
-    loss="mse",
-    metrics="mse",
+        hist_size,
+        n_features,
+        n_steps_out=1,
+        output_activation="linear",
+        loss="mse",
+        metrics="mse",
 ):
     """Define a LSTM model architecture using Keras.
 
@@ -262,5 +271,130 @@ def cnndnn(input_x, input_y, n_forecast_hours, n_steps_out=1):
     model = models.Model(inputs=[c.input, d.input], outputs=combined)
 
     model.compile(optimizer="adam", loss="mae")
+
+    return model
+
+
+def bcnn(data_size, window_size, feature_size, batch_size, kernel_size=5, n_steps_out=2, classification=False,
+         output_activation="linear"):
+    """Creates a Keras model using the temporal bayesian cnn architecture.
+   We use the Flipout Monte Carlo estimator for the convolution and fully-connected layers:
+   This enables lower variance stochastic gradients than naive reparameterization
+
+    Args:
+        data_size: (int )Number of training examples
+        window_size: (int ) Number of historical sequence used as an input
+        feature_size: (int) Number of features(sensors) used as an input
+        batch_size: (int) Size of single batch used as an input
+        '
+        kernel_size: (int) Size of kernel in CNN
+
+        n_steps_out: (int)  Number of output steps.
+        classification: (boolean, default: False). True if the model is used for classification tasts
+        output_activation: (str or tf.nn.activation, default "linear")
+
+    Returns: (model) Compiled Keras model.
+
+    """
+
+
+
+    # KL divergence weighted by the number of training samples, using
+    # lambda function to pass as input to the kernel_divergence_fn on
+    # flipout layers.
+    kl_divergence_function = (lambda q, p, _: tfd.kl_divergence(q, p) / tf.cast(data_size, dtype=tf.float32))
+    inputs = layers.Input(shape=(window_size, feature_size), batch_size=batch_size)
+
+    layer_1_outputs = tfp.layers.Convolution1DFlipout(
+        32, kernel_size=kernel_size, padding='SAME',
+        kernel_divergence_fn=kl_divergence_function,
+        activation=tf.nn.relu, name="cnn1")(inputs)
+    batch_norm_1_outputs = tf.keras.layers.BatchNormalization(name='batch_norm1')(layer_1_outputs)
+    layer_2_outputs = tfp.layers.Convolution1DFlipout(
+        16, kernel_size=kernel_size, padding='SAME',
+        kernel_divergence_fn=kl_divergence_function,
+        activation=tf.nn.relu, name="cnn2")(batch_norm_1_outputs)
+    batch_norm_2_outputs = tf.keras.layers.BatchNormalization(name='batch_norm2')(layer_2_outputs)
+    flatten_layer_outputs = tf.keras.layers.Flatten(name='flatten_layer')(batch_norm_2_outputs)
+    layer_3_outputs = tfp.layers.DenseFlipout(
+        32, kernel_divergence_fn=kl_divergence_function, name="dense1")(flatten_layer_outputs)
+    layer_4_outputs = tfp.layers.DenseFlipout(
+        n_steps_out, kernel_divergence_fn=kl_divergence_function, name="dense2", activation=output_activation)(
+        layer_3_outputs)
+
+    if classification:
+        outputs = tfp.distributions.Categorical(
+            logits=layer_4_outputs, probs=None, dtype=tf.int32, validate_args=False,
+            allow_nan_stats=True, name='Categorical'
+        )
+    else:
+        loc = layer_4_outputs[..., :1]
+        c = np.log(np.expm1(1.))
+        scale_diag = 1e-5 + tf.nn.softplus(c + layer_4_outputs[..., 1:])  ##tf.nn.softplus(outputs[..., 1:]) + 1e-5
+        outputs = tf.keras.layers.Concatenate(name='concatenate')([loc, scale_diag])
+        outputs = tfp.layers.DistributionLambda(lambda t: tfd.Independent(
+            tfd.Normal(loc=t[..., :1], scale=t[..., 1:]), reinterpreted_batch_ndims=1),
+                                                name='lambda_normal_dist_layer')(outputs)
+    model = models.Model(inputs=inputs, outputs=outputs, name="bvae")
+    if classification:
+        neg_log_likelihood = lambda x, rv_x: - tf.reduce_mean(
+            input_tensor=rv_x.log_prob(x))
+    else:
+        neg_log_likelihood = lambda x, rv_x: -rv_x.log_prob(x)
+
+    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+
+    model.compile(optimizer, loss=neg_log_likelihood)
+
+    return model
+
+
+
+def brnn(data_size, window_size, feature_size, batch_size, hidden_size):
+    """ Creates a Keras model using the temporal  LSTM architecture based on edward2 library.
+    We use the Flipout Monte Carlo estimator for the LSTM and fully-connected layers:
+   This enables lower variance stochastic gradients than naive reparameterization
+
+    Args:
+        data_size: (int )Number of training examples
+        window_size: (int ) Number of historical sequence used as an input
+        feature_size: (int) Number of features(sensors) used as an input
+        batch_size: (int) Size of single batch used as an input
+        hidden_size: (int) Number of nodes in lstm hidden layer
+
+    Returns: (model) Compiled Keras model.
+
+    """
+
+    inputs = layers.Input(shape=(window_size, feature_size), batch_size=batch_size)
+    #
+    #
+
+    forward = layers.RNN(cell=ed.layers.LSTMCellFlipout(units=hidden_size,recurrent_dropout=0.1,dropout=0.1,kernel_regularizer=ed.regularizers.NormalKLDivergence(scale_factor=1./data_size),
+    recurrent_regularizer=ed.regularizers.NormalKLDivergence(scale_factor=1./data_size),activation='relu'), return_sequences=True)
+    backward =layers.RNN(cell=ed.layers.LSTMCellFlipout(units=hidden_size,recurrent_dropout=0.1,dropout=0.1,kernel_regularizer=ed.regularizers.NormalKLDivergence(scale_factor=1./data_size),
+    recurrent_regularizer=ed.regularizers.NormalKLDivergence(scale_factor=1./data_size),activation='relu'), return_sequences=True,go_backwards=True)
+    outputs=layers.Bidirectional(layer=forward,backward_layer=backward)(inputs)
+
+    outputs = tf.keras.layers.Flatten()(outputs)
+
+
+    outputs = ed.layers.DenseFlipout(
+        units=hidden_size, kernel_regularizer=ed.regularizers.NormalKLDivergence(scale_factor=1./data_size),activation='relu')(outputs)
+    outputs = layers.Dense(2, activation=None)(outputs)
+
+    loc = outputs[..., :1]
+    c = np.log(np.expm1(1.))
+    scale_diag = 1e-5 + tf.nn.softplus(c + outputs[..., 1:])  ##tf.nn.softplus(outputs[..., 1:]) + 1e-5
+    outputs = tf.keras.layers.Concatenate()([loc, scale_diag])
+    outputs = tfp.layers.DistributionLambda(lambda t: tfd.Independent(
+        tfd.Normal(loc=t[..., :1], scale=t[..., 1:]), reinterpreted_batch_ndims=1))(outputs)
+    model = models.Model(inputs=inputs, outputs=outputs, name="bvae")
+    neg_log_likelihood = lambda x, rv_x: -rv_x.log_prob(x)
+    kl = sum(model.losses) / data_size
+    model.add_loss(lambda: kl)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
+
+    model.compile(optimizer, loss=neg_log_likelihood)
 
     return model
