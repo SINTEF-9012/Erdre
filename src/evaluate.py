@@ -208,7 +208,7 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
             model = nn.brnn(data_size=X_test.shape[0],
                             window_size=X_test.shape[1],
                             feature_size=X_test.shape[2],
-                            hidden_size=params_train["hidden_size"],
+                            # hidden_size=params_train["hidden_size"],
                             batch_size=params_train["batch_size"])
             model.load_weights(model_filepath)
             # X_test[300:305, :, :] = 3

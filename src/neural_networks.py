@@ -354,7 +354,7 @@ def bcnn(data_size, window_size, feature_size, batch_size, kernel_size=5, n_step
 
 
 
-def brnn(data_size, window_size, feature_size, batch_size, hidden_size):
+def brnn(data_size, window_size, feature_size, batch_size, hidden_size=5):
     """ Creates a Keras model using the temporal  LSTM architecture based on edward2 library.
     We use the Flipout Monte Carlo estimator for the LSTM and fully-connected layers:
    This enables lower variance stochastic gradients than naive reparameterization

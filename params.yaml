@@ -32,7 +32,7 @@ train:
   batch_size: 1
   early_stopping: true
   kernel_size: 3
-  learning_method: bcnn
+  learning_method: brnn
   n_epochs: 10
   patience: 3
   n_step_out: 2
