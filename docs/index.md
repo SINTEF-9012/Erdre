@@ -21,4 +21,3 @@ Source code available at: [https://github.com/SINTEF-9012/Erdre](https://github.
 
 - [Running the Erdre pipeline](demo.html)
 - [Running Erdre as a service](demo_service.html)
-

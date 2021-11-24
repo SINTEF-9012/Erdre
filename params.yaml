@@ -23,16 +23,16 @@ sequentialize:
   overlap: 0
   shuffle_samples: false
   target_size: 1
-  window_size: 15
+  window_size: 6
 split:
   calibrate_split: 0.0
   shuffle_files: false
-  train_split: 0.7
+  train_split: 0.5
 train:
-  batch_size: 256
+  batch_size: 1
   early_stopping: true
-  kernel_size: 3
-  learning_method: cnn
-  n_epochs: 200
-  patience: 40
-  train: true
+  kernel_size: 2
+  learning_method: bcnn
+  n_epochs: 40
+  patience: 5
+  n_step_out: 2
