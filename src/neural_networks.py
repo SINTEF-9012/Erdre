@@ -303,7 +303,7 @@ def bcnn(data_size, window_size, feature_size, batch_size, kernel_size=5, n_step
     # lambda function to pass as input to the kernel_divergence_fn on
     # flipout layers.
     kl_divergence_function = (lambda q, p, _: tfd.kl_divergence(q, p) / tf.cast(data_size, dtype=tf.float32))
-    inputs = layers.Input(shape=(window_size, feature_size), batch_size=batch_size)
+    inputs = layers.Input(shape=(window_size, feature_size))
 
     layer_1_outputs = tfp.layers.Convolution1DFlipout(
         32, kernel_size=kernel_size, padding='SAME',
@@ -370,7 +370,7 @@ def brnn(data_size, window_size, feature_size, batch_size, hidden_size):
 
     """
 
-    inputs = layers.Input(shape=(window_size, feature_size), batch_size=batch_size)
+    inputs = layers.Input(shape=(window_size, feature_size))
     #
     #
 
