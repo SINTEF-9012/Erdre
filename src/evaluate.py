@@ -372,6 +372,53 @@ def compute_uncertainty(model, test_data, iterations=100):
 
 
 
+def coverage_probability(y_true, y_pred, uncertainty_estimate, coverage_factor=1.96):
+    """
+    A function to measure the coverage probability(level of confidence) of a confidence interval.
+
+    The coverage probability for an interval estimate is the proportion of
+    instances in which the sample statistic obtained from infinite independent and identical
+    replications of the experiment is contained. You want coverage probability equal to the nominal confidence of the interval estimate
+
+    Args:
+        y_true: groubd truth of test dataset
+        y_pred: mean prediction
+        uncertainty_estimate: total estimate of uncertainty
+        coverage_factor: (float default  1.96)coverage factor
+
+    Returns:
+
+    """
+    upper = y_pred + coverage_factor * uncertainty_estimate # upper bound of confidence interval
+    lower = y_pred - coverage_factor * uncertainty_estimate # lower bound of confidence intrval
+    within_confidence_interval = np.zeros(len(y_true))
+    for i in range(len(y_true)):
+        if lower[i] < y_true[i] and upper[i] > y_true[i]:
+            within_confidence_interval[i] = 1
+    return 100*np.mean(within_confidence_interval)
+
+
+def coverage_probability2(samples, y_true, alpha=0.05):
+    """
+    A function to measure the coverage of 100*(1- alpha)% interval
+    Args:
+        samples: (ndarray) samples(more than 1) from predicted distribution.
+        y_true:  A true sample, ground truth of training dataset
+        alph: (float: optinal,default:0.05)  It represent  the probability of making a wrong decision
+
+    Returns:
+
+    """
+    q0 = (100.0 - 100*(1-alpha)) / 2.0  # lower percentile
+    q1 = 100.0 - q0  # upper percentile
+    within_confidence_interval = np.zeros(len(y_true))
+    for i in range(len(y_true)):
+        lower_bound = np.percentile(samples[:, i], q0)
+        upper_bound = np.percentile(samples[:, i], q1)
+        if lower_bound <= y_true[i] < upper_bound:
+            within_confidence_interval[i] = 1
+    return 100*np.mean(within_confidence_interval)
+
 def plot_confusion(y_test, y_pred):
     """Plotting confusion matrix of a classification model."""
 
