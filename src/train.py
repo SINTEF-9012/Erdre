@@ -167,13 +167,13 @@ def train(filepath):
         model = nn.brnn(data_size=X_train.shape[0],
                         window_size=X_train.shape[1],
                         feature_size=X_train.shape[2],
-                        batch_size=1,
-                        hidden_size=5)  # TODO: Make this into a parameter
+                        batch_size=params["batch_size"],
+                        hidden_size=10)  # TODO: Make this into a parameter
     elif learning_method == 'bcnn':
         model = nn.bcnn(data_size=X_train.shape[0],
                         window_size=X_train.shape[1],
                         feature_size=X_train.shape[2],
-                        batch_size=1,
+                        batch_size=params["batch_size"],
                         kernel_size=params["kernel_size"],
                         n_steps_out=params["n_step_out"],
                         output_activation=output_activation,
@@ -206,11 +206,12 @@ def train(filepath):
             )
 
         early_stopping = EarlyStopping(
-            monitor="val_" + monitor_metric, patience=patience, verbose=4
+            monitor="val_" + monitor_metric, patience=patience, verbose=4,
+            restore_best_weights=True
         )
 
         model_checkpoint = ModelCheckpoint(
-            MODELS_FILE_PATH, monitor="val_" + monitor_metric, save_best_only=True
+            MODELS_FILE_PATH, monitor="val_" + monitor_metric #, save_best_only=True
         )
 
         if use_early_stopping:

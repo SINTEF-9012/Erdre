@@ -57,12 +57,14 @@ def cnn(
             activation="relu",
             input_shape=(input_x, input_y),
             name="input_layer",
+            padding="SAME"
         )
     )
     # model.add(layers.MaxPooling1D(pool_size=4, name="pool_1"))
     model.add(
         layers.Conv1D(
-            filters=16, kernel_size=kernel_size, activation="relu", name="conv1d_2"
+            filters=16, kernel_size=kernel_size, activation="relu",
+            name="conv1d_2", padding="SAME"
         )
     )
     # model.add(layers.MaxPooling1D(pool_size=4, name="pool_2"))
@@ -346,7 +348,7 @@ def bcnn(data_size, window_size, feature_size, batch_size, kernel_size=5, n_step
     else:
         neg_log_likelihood = lambda x, rv_x: -rv_x.log_prob(x)
 
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
 
     model.compile(optimizer, loss=neg_log_likelihood)
 

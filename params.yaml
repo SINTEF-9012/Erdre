@@ -5,16 +5,34 @@ clean:
   input_max_correlation_threshold: 1.0
   onehot_encode_target: false
   percentage_zeros_threshold: 1.0
+  # target: S1_OutputPower
+  # target: Spindle_Torque
   target: Accel_FFT_Acc1_range1_Amplitudes_0
 evaluate: null
 featurize:
   add_rolling_features: false
-  features: null
+  features:
+      - Accel_FFT_Acc1_range1_Amplitudes_1
+      - Accel_FFT_Acc1_range1_Amplitudes_2
+      - Accel_FFT_Acc1_range1_Amplitudes_3
+      - Accel_FFT_Acc1_range1_Amplitudes_4
+      # - S1_CommandVelocity
+      # - S1_DCBusVoltage
+      # - S1_OutputVoltage
+      # - S1_ActualVelocity
+      # - S1_OutputPower
+      # - Axis_Y_Real_Position
+      # - Axis_Y_Target_Position
+      # - Axis_Z_Real_Position
+      # - Axis_Z_Target_Position
+      # - TN
   remove_features: null
   rolling_window_size: 100
   target_min_correlation_threshold: 0.0
 profile:
-  dataset: ideko
+    dataset: ideko
+  # dataset: automotive
+  # dataset: cnc_milling
 scale:
   input: minmax
   output: null
@@ -23,16 +41,16 @@ sequentialize:
   overlap: 0
   shuffle_samples: false
   target_size: 1
-  window_size: 6
+  window_size: 3
 split:
   calibrate_split: 0.0
   shuffle_files: false
   train_split: 0.5
 train:
-  batch_size: 1
-  early_stopping: true
-  kernel_size: 2
+  batch_size: 32
+  early_stopping: False
+  kernel_size: 3
   learning_method: bcnn
-  n_epochs: 40
-  patience: 5
+  n_epochs: 100
+  patience: 20
   n_step_out: 2
