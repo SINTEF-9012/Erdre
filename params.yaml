@@ -1,56 +1,44 @@
-clean:
-  classification: false
-  combine_files: false
-  correlation_metric: pearson
-  input_max_correlation_threshold: 1.0
-  onehot_encode_target: false
-  percentage_zeros_threshold: 1.0
-  # target: S1_OutputPower
-  # target: Spindle_Torque
-  target: Accel_FFT_Acc1_range1_Amplitudes_0
-evaluate: null
-featurize:
-  add_rolling_features: false
-  features:
-      - Accel_FFT_Acc1_range1_Amplitudes_1
-      - Accel_FFT_Acc1_range1_Amplitudes_2
-      - Accel_FFT_Acc1_range1_Amplitudes_3
-      - Accel_FFT_Acc1_range1_Amplitudes_4
-      # - S1_CommandVelocity
-      # - S1_DCBusVoltage
-      # - S1_OutputVoltage
-      # - S1_ActualVelocity
-      # - S1_OutputPower
-      # - Axis_Y_Real_Position
-      # - Axis_Y_Target_Position
-      # - Axis_Z_Real_Position
-      # - Axis_Z_Target_Position
-      # - TN
-  remove_features: null
-  rolling_window_size: 100
-  target_min_correlation_threshold: 0.0
 profile:
-    dataset: ideko
-  # dataset: automotive
-  # dataset: cnc_milling
-scale:
-  input: minmax
-  output: null
-sequentialize:
-  future_predict: false
-  overlap: 0
-  shuffle_samples: false
-  target_size: 1
-  window_size: 3
+    dataset: automotive
+
+clean:
+    target: Spindle_Torque
+    classification: False
+    onehot_encode_target: False
+    combine_files: False
+    percentage_zeros_threshold: 1.0
+    correlation_metric: pearson
+    input_max_correlation_threshold: 1.0
+
+featurize:
+    features:
+    add_rolling_features: True
+    rolling_window_size: 10
+    remove_features:
+    target_min_correlation_threshold: 0.0
+
 split:
-  calibrate_split: 0.0
-  shuffle_files: false
-  train_split: 0.5
+    train_split: 0.5
+    shuffle_files: False
+    calibrate_split: 0.0
+
+scale:
+    input: minmax
+    output:
+
+sequentialize:
+    window_size: 10
+    overlap: 0
+    target_size: 1
+    shuffle_samples: False
+    future_predict: False
+
 train:
-  batch_size: 32
-  early_stopping: False
-  kernel_size: 3
-  learning_method: bcnn
-  n_epochs: 100
-  patience: 20
-  n_step_out: 2
+    learning_method: cnn
+    n_epochs: 20
+    batch_size: 256
+    kernel_size: 5
+    early_stopping: True
+    patience: 10
+
+evaluate:

@@ -99,9 +99,8 @@ def featurize(dir_path="", inference=False, inference_df=None):
         )
 
 
-
 def _featurize(df, features, remove_features, add_rolling_features,
-        window_size, output_columns):
+        rolling_window_size, output_columns):
     """Process individual DataFrames."""
 
     # If no features are specified, use all columns as features
