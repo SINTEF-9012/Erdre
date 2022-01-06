@@ -16,6 +16,7 @@ Created:
 import os
 import sys
 
+from codecarbon import track_emissions
 import joblib
 import numpy as np
 import pandas as pd
@@ -23,6 +24,7 @@ import yaml
 from sklearn.preprocessing import MinMaxScaler, RobustScaler, StandardScaler
 
 from config import (
+    COUNTRY,
     DATA_PATH,
     DATA_SCALED_PATH,
     INPUT_SCALER_PATH,
@@ -33,6 +35,7 @@ from config import (
 from preprocess_utils import find_files
 
 
+@track_emissions(offline=True, country_iso_code=COUNTRY, project_name="scale_stage")
 def scale(dir_path):
     """Scale training and test data.
 

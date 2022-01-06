@@ -1,8 +1,10 @@
 profile:
-    dataset: automotive
+    # dataset: automotive
+    dataset: cnc_milling
 
 clean:
-    target: Spindle_Torque
+    target: X1_ActualPosition
+    # target: Spindle_Torque
     classification: False
     onehot_encode_target: False
     combine_files: False

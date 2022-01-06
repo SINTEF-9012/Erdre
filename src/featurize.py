@@ -12,6 +12,7 @@ import json
 import os
 import sys
 
+from codecarbon import track_emissions
 import numpy as np
 import pandas as pd
 import yaml
@@ -21,6 +22,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 
 from config import (
+    COUNTRY,
     DATA_CLEANED_PATH,
     DATA_FEATURIZED_PATH,
     DATA_PATH,
@@ -32,6 +34,7 @@ from config import (
 from preprocess_utils import find_files, move_column
 
 
+@track_emissions(offline=True, country_iso_code=COUNTRY, project_name="featurize_stage")
 def featurize(dir_path="", inference=False, inference_df=None):
     """Clean up inputs and add features to data set.
 

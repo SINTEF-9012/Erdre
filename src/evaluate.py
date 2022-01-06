@@ -12,6 +12,7 @@ import json
 import shutil
 import sys
 
+from codecarbon import track_emissions
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -46,6 +47,7 @@ tfd = tfp.distributions
 
 import neural_networks as nn
 from config import (
+    COUNTRY,
     DATA_PATH,
     INPUT_FEATURES_PATH,
     INTERVALS_PLOT_PATH,
@@ -89,6 +91,7 @@ class ConformalPredictionModel(RegressorAdapter):
         return predictions
 
 
+@track_emissions(offline=True, country_iso_code=COUNTRY, project_name="evaluate_stage")
 def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
     """Evaluate model to estimate power.
 

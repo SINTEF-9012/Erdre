@@ -15,12 +15,14 @@ import json
 import os
 import sys
 
+from codecarbon import track_emissions
 import numpy as np
 import pandas as pd
 import yaml
 from sklearn.preprocessing import LabelBinarizer, LabelEncoder
 
 from config import (
+    COUNTRY,
     DATA_CLEANED_PATH,
     DATA_PATH,
     DATA_PATH_RAW,
@@ -30,7 +32,7 @@ from config import (
 )
 from preprocess_utils import find_files
 
-
+@track_emissions(offline=True, country_iso_code=COUNTRY, project_name="clean_stage")
 def clean(dir_path=DATA_PATH_RAW, inference_df=None):
     """Clean up inputs.
 

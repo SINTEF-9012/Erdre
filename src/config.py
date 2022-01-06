@@ -13,6 +13,8 @@ Created:  2020-09-16
 
 from pathlib import Path
 
+COUNTRY = "NOR"
+
 # PARAMETERS
 
 NON_DL_METHODS = ["dt", "rf", "xgboost", "lda", "qda", "svm"]

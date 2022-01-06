@@ -12,6 +12,7 @@ Created:
 """
 import sys
 
+from codecarbon import track_emissions
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -32,6 +33,7 @@ from tensorflow.keras.utils import plot_model
 
 import neural_networks as nn
 from config import (
+    COUNTRY,
     DATA_PATH,
     MODELS_FILE_PATH,
     MODELS_PATH,
@@ -42,6 +44,7 @@ from config import (
 )
 
 
+@track_emissions(offline=True, country_iso_code=COUNTRY, project_name="train_stage")
 def train(filepath):
     """Train model to estimate power.
 

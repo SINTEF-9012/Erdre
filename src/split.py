@@ -13,13 +13,14 @@ import random
 import shutil
 import sys
 
+from codecarbon import track_emissions
 import numpy as np
 import yaml
 
-from config import DATA_SPLIT_PATH
+from config import COUNTRY, DATA_SPLIT_PATH
 from preprocess_utils import find_files
 
-
+@track_emissions(offline=True, country_iso_code=COUNTRY, project_name="split_stage")
 def split(dir_path):
     """Split data into train and test set.
 

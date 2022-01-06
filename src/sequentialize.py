@@ -15,11 +15,13 @@ Date:
 import os
 import sys
 
+from codecarbon import track_emissions
 import numpy as np
 import pandas as pd
 import yaml
 
 from config import (
+    COUNTRY,
     DATA_PATH,
     DATA_SEQUENTIALIZED_PATH,
     NON_DL_METHODS,
@@ -28,6 +30,7 @@ from config import (
 from preprocess_utils import find_files, flatten_sequentialized, split_sequences
 
 
+@track_emissions(offline=True, country_iso_code=COUNTRY, project_name="sequentialize_stage")
 def sequentialize(dir_path):
     """Make sequences out of tabular data."""
 

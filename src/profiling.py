@@ -3,14 +3,15 @@
 import os
 import sys
 
+from codecarbon import track_emissions
 import pandas as pd
 import yaml
 from pandas_profiling import ProfileReport
 
-from config import PROFILE_PATH
+from config import PROFILE_PATH, COUNTRY
 from preprocess_utils import find_files
 
-
+@track_emissions(offline=True, country_iso_code=COUNTRY, project_name="profile_stage")
 def profile(dir_path):
     """Creates a profile report of a data set.
 
