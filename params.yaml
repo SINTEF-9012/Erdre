@@ -1,8 +1,8 @@
 profile:
-    dataset: automotive
+    dataset: cnc_milling
 
 clean:
-    target: Spindle_Torque
+    target: X1_ActualPosition
     classification: False
     onehot_encode_target: False
     combine_files: False
@@ -11,9 +11,45 @@ clean:
     input_max_correlation_threshold: 1.0
 
 featurize:
-    features:
-    add_rolling_features: True
-    rolling_window_size: 10
+    # If empty, all input variables are used
+    variables_to_include:
+        # - feature1
+
+    # By setting this to True, the add_-options below are overrided.
+    use_all_engineered_features_on_all_variables: False
+
+    # List the variables below each add_* to add engineered feature
+    add_sum:
+        # - variable1
+    add_gradient:
+        # - variable1
+    add_mean:
+        # - variable1
+    add_maximum:
+        # - variable1
+    add_minimum:
+        # - variable1
+    add_min_max_range:
+        # - variable1
+    add_slope:
+        # - variable1
+    add_slope_sin:
+        # - variable1
+    add_slope_cos:
+        # - variable1
+    add_standard_deviation:
+        # - efficiency
+    add_variance:
+        # - variable1
+    add_peak_frequency:
+        # - variable1
+    rolling_window_size_sum: 10
+    rolling_window_size_mean: 10
+    rolling_window_size_max_min: 10
+    rolling_window_size_standard_deviation: 10
+
+    # List features here to remove the raw variables after engineering features
+    # from them
     remove_features:
     target_min_correlation_threshold: 0.0
 

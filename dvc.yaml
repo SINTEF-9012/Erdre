@@ -42,9 +42,24 @@ stages:
         - assets/data/featurized
         - assets/features/input_columns.csv
         params:
-        - featurize.features
-        - featurize.add_rolling_features
-        - featurize.rolling_window_size
+        - featurize.variables_to_include
+        - featurize.use_all_engineered_features_on_all_variables
+        - featurize.add_sum
+        - featurize.add_gradient
+        - featurize.add_mean
+        - featurize.add_maximum
+        - featurize.add_minimum
+        - featurize.add_min_max_range
+        - featurize.add_slope
+        - featurize.add_slope_sin
+        - featurize.add_slope_cos
+        - featurize.add_standard_deviation
+        - featurize.add_variance
+        - featurize.add_peak_frequency
+        - featurize.rolling_window_size_sum
+        - featurize.rolling_window_size_mean
+        - featurize.rolling_window_size_max_min
+        - featurize.rolling_window_size_standard_deviation
         - featurize.remove_features
         - featurize.target_min_correlation_threshold
         - clean.target
