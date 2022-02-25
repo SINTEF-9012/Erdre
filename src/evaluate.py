@@ -559,12 +559,15 @@ def plot_prediction(y_true, y_pred, inputs=None, info=""):
 
     fig.update_layout(title_text="True vs pred " + info)
     fig.update_xaxes(title_text="time step")
-    fig.update_yaxes(title_text="target variable", secondary_y=False)
+    fig.update_yaxes(title_text="target unit", secondary_y=False)
     fig.update_yaxes(title_text="scaled units", secondary_y=True)
 
     fig.write_html(str(PLOTS_PATH / "prediction.html"))
 
-    # return plotly.offline.plot(fig, include_plotlyjs=True, output_type="div")
+    # fig.update_traces(line=dict(width=0.8))
+    # fig.write_image("plot.pdf", height=300, width=560)
+    # fig.write_image("plot.png", height=300, width=400, scale=10)
+
     return fig
 
 
