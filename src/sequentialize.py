@@ -74,7 +74,7 @@ def sequentialize(dir_path):
             overlap=overlap,
         )
 
-        if learning_method == "dnn" or learning_method in NON_DL_METHODS:
+        if learning_method == "dnn" or learning_method == "dnn_simple" or learning_method in NON_DL_METHODS:
             X = flatten_sequentialized(X)
 
         if params["shuffle_samples"]:
