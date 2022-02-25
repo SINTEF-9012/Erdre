@@ -187,6 +187,36 @@ def dnn(
 
     return model
 
+def dnn_simple(
+        input_x,
+        output_length=1,
+        seed=2020,
+        output_activation="linear",
+        loss="mse",
+        metrics="mse",
+):
+    """Define a DNN model architecture using Keras.
+
+    Args:
+        input_x (int): Number of features.
+        output_length (int): Number of output steps.
+        output_activation: Activation function for outputs.
+
+    Returns:
+        model (keras model): Model to be trained.
+
+    """
+
+    tf.random.set_seed(seed)
+
+    model = models.Sequential()
+    model.add(layers.Dense(16, activation="relu", input_dim=input_x))
+    # model.add(layers.Dense(16, activation="relu"))
+    model.add(layers.Dense(output_length, activation=output_activation))
+    model.compile(optimizer="adam", loss=loss, metrics=metrics)
+
+    return model
+
 
 def lstm(
         hist_size,
