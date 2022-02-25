@@ -1,6 +1,6 @@
 profile:
-    # dataset: broaching_small
-    dataset: broaching_synchronized
+    dataset: broaching_small
+    #dataset: broaching_synchronized
 
 clean:
     target: acc2_x
@@ -91,10 +91,10 @@ sequentialize:
 
 train:
     learning_method: dnn
-    n_epochs: 500
+    n_epochs: 300
     batch_size: 256
     kernel_size: 5
-    early_stopping: False
-    patience: 20
+    early_stopping: True
+    patience: 50
 
 evaluate:

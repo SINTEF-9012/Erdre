@@ -52,7 +52,7 @@ def cnn(
     model = models.Sequential()
     model.add(
         layers.Conv1D(
-            filters=32,
+            filters=16,
             kernel_size=kernel_size,
             activation="relu",
             input_shape=(input_x, input_y),
@@ -61,12 +61,12 @@ def cnn(
         )
     )
     # model.add(layers.MaxPooling1D(pool_size=4, name="pool_1"))
-    model.add(
-        layers.Conv1D(
-            filters=16, kernel_size=kernel_size, activation="relu",
-            name="conv1d_2", padding="SAME"
-        )
-    )
+    #model.add(
+    #    layers.Conv1D(
+    #        filters=16, kernel_size=kernel_size, activation="relu",
+    #        name="conv1d_2", padding="SAME"
+    #    )
+    #)
     # model.add(layers.MaxPooling1D(pool_size=4, name="pool_2"))
     # model.add(layers.Conv1D(filters=32, kernel_size=kernel_size,
     # activation="relu", name="conv1d_3"))
@@ -179,7 +179,7 @@ def dnn(
     model = models.Sequential()
     model.add(layers.Dense(16, activation="relu", input_dim=input_x))
     # model.add(layers.Dense(256, activation='relu', input_dim=input_x))
-    model.add(layers.Dense(16, activation="relu"))
+    # model.add(layers.Dense(16, activation="relu"))
     # model.add(layers.Dense(32, activation='relu'))
     # model.add(layers.Dense(32, activation='relu'))
     model.add(layers.Dense(output_length, activation=output_activation))
