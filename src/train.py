@@ -119,6 +119,14 @@ def train(filepath):
             loss=loss,
             metrics=metrics,
         )
+    elif learning_method == "dnn_simple":
+        model = nn.dnn_simple(
+            n_features,
+            output_length=output_length,
+            output_activation=output_activation,
+            loss=loss,
+            metrics=metrics,
+        )
     elif learning_method == "lstm":
         hist_size = X_train.shape[-2]
         model = nn.lstm(
