@@ -10,7 +10,7 @@ Date:
 
 """
 import numpy as np
-import tensorflow as  tf
+import tensorflow as tf
 from tensorflow.keras import layers, models, optimizers
 
 import tensorflow_probability as tfp
