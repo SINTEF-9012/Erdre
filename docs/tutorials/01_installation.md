@@ -21,7 +21,7 @@ to be installed: [Graphviz](https://graphviz.org/about/).
 As an alternative you can install the required modules by running the command below, but be aware that this may cause problems due to mismatching version requirements.
 
 ```
-pip3 install dvc pandas==1.3.5 pandas-profiling sklearn xgboost tensorflow tensorflow-probability edward2 plotly nonconformist
+pip3 install dvc pandas pandas-profiling sklearn xgboost tensorflow tensorflow-probability edward2 plotly nonconformist
 ```
 
 
