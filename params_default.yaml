@@ -1,8 +1,8 @@
 profile:
-    dataset: 
+    dataset: dataset_name
 
 clean:
-    target: 
+    target: target_variable_name
     classification: False
     onehot_encode_target: False
     combine_files: False
