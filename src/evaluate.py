@@ -524,6 +524,9 @@ def plot_prediction(y_true, y_pred, inputs=None, info=""):
     if len(y_pred.shape) > 1:
         y_pred = y_pred[:, -1].reshape(-1)
 
+    # y_true = y_true[:4000]
+    # y_pred = y_pred[:4000]
+
     fig.add_trace(
         go.Scatter(x=x, y=y_true, name="true"),
         secondary_y=False,
@@ -559,12 +562,15 @@ def plot_prediction(y_true, y_pred, inputs=None, info=""):
 
     fig.update_layout(title_text="True vs pred " + info)
     fig.update_xaxes(title_text="time step")
-    fig.update_yaxes(title_text="target variable", secondary_y=False)
+    fig.update_yaxes(title_text="target unit", secondary_y=False)
     fig.update_yaxes(title_text="scaled units", secondary_y=True)
 
     fig.write_html(str(PLOTS_PATH / "prediction.html"))
 
-    # return plotly.offline.plot(fig, include_plotlyjs=True, output_type="div")
+    # fig.update_traces(line=dict(width=0.8))
+    # fig.write_image("plot.pdf", height=270, width=560)
+    # fig.write_image("plot.png", height=270, width=560, scale=10)
+
     return fig
 
 

@@ -48,10 +48,9 @@ def featurize(dir_path="", inference=False, inference_df=None):
     with open("params.yaml", "r") as params_file:
         params = yaml.safe_load(params_file)
 
-    features = params["featurize"]["features"]
+    features = params["featurize"]["variables_to_include"]
+    engineer_all = params["featurize"]["use_all_engineered_features_on_all_variables"]
     remove_features = params["featurize"]["remove_features"]
-    add_rolling_features = params["featurize"]["add_rolling_features"]
-    rolling_window_size = params["featurize"]["rolling_window_size"]
     target = params["clean"]["target"]
 
     if inference:
@@ -59,8 +58,7 @@ def featurize(dir_path="", inference=False, inference_df=None):
             inference_df,
             features,
             remove_features,
-            add_rolling_features,
-            rolling_window_size,
+            params
         )
 
         return df
@@ -83,8 +81,7 @@ def featurize(dir_path="", inference=False, inference_df=None):
             for col in output_columns[::-1]:
                 df = move_column(df, column_name=col, new_idx=0)
 
-            df = _featurize(df, features, remove_features, add_rolling_features,
-                    rolling_window_size, output_columns)
+            df = _featurize(df, features, remove_features, params, output_columns)
 
             np.save(
                 DATA_FEATURIZED_PATH
@@ -99,8 +96,7 @@ def featurize(dir_path="", inference=False, inference_df=None):
         )
 
 
-def _featurize(df, features, remove_features, add_rolling_features,
-        rolling_window_size, output_columns):
+def _featurize(df, features, remove_features, params, output_columns):
     """Process individual DataFrames."""
 
     # If no features are specified, use all columns as features
@@ -123,10 +119,9 @@ def _featurize(df, features, remove_features, add_rolling_features,
         elif not is_numeric_dtype(df[col]):
             del df[col]
 
-    if add_rolling_features:
-        df = compute_rolling_features(
-            df, rolling_window_size, ignore_columns=output_columns
-        )
+    df = compute_rolling_features(
+        df, params, ignore_columns=output_columns
+    )
 
     if type(remove_features) is list:
         for col in remove_features:
@@ -135,7 +130,7 @@ def _featurize(df, features, remove_features, add_rolling_features,
     return df
 
 
-def compute_rolling_features(df, window_size, ignore_columns=None):
+def compute_rolling_features(df, params, ignore_columns=None):
     """
     This function adds features to the input data, based on the arguments
     given in the features-list.
@@ -161,22 +156,65 @@ def compute_rolling_features(df, window_size, ignore_columns=None):
 
     columns = [col for col in df.columns if col not in ignore_columns]
 
-    for col in columns:
-        df[f"{col}_sum"] = df[col].rolling(window_size).sum()
-        df[f"{col}_gradient"] = np.gradient(df[col])
-        df[f"{col}_mean"] = df[col].rolling(window_size).mean()
-        maximum = df[col].rolling(window_size).max()
-        minimum = df[col].rolling(window_size).min()
-        df[f"{col}_maximum"] = maximum
-        df[f"{col}_minimum"] = minimum
-        df[f"{col}_min_max_range"] = maximum - minimum
-        slope = calculate_slope(df[col])
-        df[f"{col}_slope"] = slope
-        df[f"{col}_slope_sin"] = np.sin(slope)
-        df[f"{col}_slope_cos"] = np.cos(slope)
-        df[f"{col}_standard_deviation"] = df[col].rolling(window_size).std()
-        df[f"{col}_variance"] = np.var(df[col])
-        df[f"{col}_peak_frequency"] = calculate_peak_frequency(df[col])
+    if params["featurize"]["use_all_engineered_features_on_all_variables"]:
+        features_to_add = [p for p in params["featurize"] if p.startswith("add_")]
+
+        for feature in features_to_add:
+            params["featurize"][feature] = columns
+
+    if type(params["featurize"]["add_sum"]) == list:
+        for var in params["featurize"]["add_sum"]:
+            df[f"{var}_sum"] = df[var].rolling(
+                    params["featurize"]["rolling_window_size_sum"]
+            ).sum()
+
+    if type(params["featurize"]["add_gradient"]) == list:
+        for var in params["featurize"]["add_gradient"]:
+            df[f"{var}_gradient"] = np.gradient(df[var])
+
+    if type(params["featurize"]["add_mean"]) == list:
+        for var in params["featurize"]["add_mean"]:
+            df[f"{var}_mean"] = df[var].rolling(params["featurize"]["rolling_window_size_mean"]).mean()
+
+    if type(params["featurize"]["add_maximum"]) == list:
+        for var in params["featurize"]["add_maximum"]:
+            df[f"{var}_maximum"] = df[var].rolling(params["featurize"]["rolling_window_size_max_min"]).max()
+
+    if type(params["featurize"]["add_minimum"]) == list:
+        for var in params["featurize"]["add_minimum"]:
+            minimum = df[var].rolling(params["featurize"]["rolling_window_size_max_min"]).min()
+
+    if type(params["featurize"]["add_min_max_range"]) == list:
+        for var in params["featurize"]["add_min_max_range"]:
+            maximum = df[var].rolling(params["featurize"]["rolling_window_size_max_min"]).max()
+            minimum = df[var].rolling(params["featurize"]["rolling_window_size_max_min"]).min()
+            df[f"{var}_min_max_range"] = maximum - minimum
+
+    if type(params["featurize"]["add_slope"]) == list:
+        for var in params["featurize"]["add_slope"]:
+            df[f"{var}_slope"] = calculate_slope(df[var])
+
+    if type(params["featurize"]["add_slope_sin"]) == list:
+        for var in params["featurize"]["add_slope_sin"]:
+            slope = calculate_slope(df[var])
+            df[f"{var}_slope_sin"] = np.sin(slope)
+
+    if type(params["featurize"]["add_slope_cos"]) == list:
+        for var in params["featurize"]["add_slope_cos"]:
+            slope = calculate_slope(df[var])
+            df[f"{var}_slope_cos"] = np.cos(slope)
+
+    if type(params["featurize"]["add_standard_deviation"]) == list:
+        for var in params["featurize"]["add_standard_deviation"]:
+            df[f"{var}_standard_deviation"] = df[var].rolling(params["featurize"]["rolling_window_size_standard_deviation"]).std()
+
+    if type(params["featurize"]["add_variance"]) == list:
+        for var in params["featurize"]["add_variance"]:
+            df[f"{var}_variance"] = np.var(df[var])
+
+    if type(params["featurize"]["add_peak_frequency"]) == list:
+        for var in params["featurize"]["add_peak_frequency"]:
+            df[f"{var}_peak_frequency"] = calculate_peak_frequency(df[var])
 
     df = df.dropna()
     return df
