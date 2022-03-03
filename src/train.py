@@ -57,6 +57,7 @@ def train(filepath):
     learning_method = params["learning_method"]
     use_early_stopping = params["early_stopping"]
     patience = params["patience"]
+    target_size = yaml.safe_load(open("params.yaml"))["sequentialize"]["target_size"]
     classification = yaml.safe_load(open("params.yaml"))["clean"]["classification"]
     onehot_encode_target = yaml.safe_load(open("params.yaml"))["clean"][
         "onehot_encode_target"
@@ -183,7 +184,7 @@ def train(filepath):
                         feature_size=X_train.shape[2],
                         batch_size=params["batch_size"],
                         kernel_size=params["kernel_size"],
-                        n_steps_out=params["n_step_out"],
+                        n_steps_out=target_size,
                         output_activation=output_activation,
                         classification=classification)
     else:
