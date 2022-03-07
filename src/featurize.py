@@ -114,10 +114,17 @@ def _featurize(df, features, remove_features, params, output_columns):
         # should not be a part of the input.
         if (col not in features) and (col not in output_columns):
             del df[col]
-
+            
+        
         # Remove feature if it is non-numeric
         elif not is_numeric_dtype(df[col]):
+            print(f"Removing feature {col} because it is non-numeric.")
             del df[col]
+
+        # Convert boolean feature to integer
+        elif df.dtypes[col] == bool:
+            print(f"Converting feature {col} from boolean to integer.")
+            df[col] = df[col].replace({True: 1, False: 0})
 
     df = compute_rolling_features(
         df, params, ignore_columns=output_columns
@@ -170,6 +177,8 @@ def compute_rolling_features(df, params, ignore_columns=None):
 
     if type(params["featurize"]["add_gradient"]) == list:
         for var in params["featurize"]["add_gradient"]:
+            # df = pd.concat([pd.DataFrame(np.gradient(df[var])), df], axis=1)
+            # print(df)
             df[f"{var}_gradient"] = np.gradient(df[var])
 
     if type(params["featurize"]["add_mean"]) == list:
