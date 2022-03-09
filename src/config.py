@@ -15,7 +15,18 @@ from pathlib import Path
 
 # PARAMETERS
 
+# Deep learning methods
+DL_METHODS = ["dnn", "dnn_simple", "cnn", "lstm", "bcnn", "brnn"]
+
+# Non-deep learning methods
 NON_DL_METHODS = ["dt", "rf", "xgboost", "lda", "qda", "svm"]
+
+# Learning methods that can process sequences
+SEQUENCE_LEARNING_METHODS = ["cnn", "lstm", "bcnn", "brnn"]
+
+# Learning methods that cannot process sequences
+NON_SEQUENCE_LEARNING_METHODS = ["dnn", "dnn_simple", "dt", "rf", "xgboost", "lda", "qda", "svm"]
+
 
 # PATHS
 
