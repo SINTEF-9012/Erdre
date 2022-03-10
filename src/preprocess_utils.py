@@ -159,6 +159,7 @@ def split_sequences(
 
     start_idx = 0
 
+    # overlap can maximum be one less than window_size
     if overlap >= window_size:
         overlap = window_size - 1
 
