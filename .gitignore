@@ -49,3 +49,9 @@ assets/scalers/
 assets/predictions/
 assets/features/
 virtual_sensors.json
+
+# Files related to compilation of cython
+build/
+*.so
+cutils.c
+
