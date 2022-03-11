@@ -54,10 +54,12 @@ def clean(dir_path=DATA_PATH_RAW, inference_df=None):
     if dataset_name is not None and inference_df is None:
         dir_path += "/" + dataset_name
 
-    # Find removable variables from profiling report
-    removable_variables = parse_profile_warnings()
 
     if inference_df is None:
+        # Find removable variables from profiling report
+        removable_variables = parse_profile_warnings()
+
+        # Find input files
         filepaths = find_files(dir_path, file_extension=".csv")
 
         dfs = []
@@ -65,6 +67,9 @@ def clean(dir_path=DATA_PATH_RAW, inference_df=None):
         for filepath in filepaths:
             dfs.append(pd.read_csv(filepath))
     else:
+        # No removable variables when running inference
+        removable_variables = []
+
         dfs = [inference_df]
 
     dfs = read_data(dfs, removable_variables)
