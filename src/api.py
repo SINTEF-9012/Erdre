@@ -14,6 +14,7 @@ import json
 import time
 import subprocess
 import urllib.request
+import uuid
 from pathlib import Path
 
 import flask
@@ -38,58 +39,52 @@ app.config["DEBUG"] = True
 def home():
     return flask.render_template("index.html")
 
-@app.route("/virtual_sensors")
-def virtual_sensors():
+@app.route("/create_model_form")
+def create_model_form():
 
-    virtual_sensors = get_virtual_sensors()
+    models = get_models()
 
     return flask.render_template(
-            "virtual_sensors.html",
-            length=len(virtual_sensors),
-            virtual_sensors=virtual_sensors
+            "create_model_form.html",
+            length=len(models),
+            models=models
     )
 
 @app.route("/inference")
 def inference():
 
-    virtual_sensors = get_virtual_sensors()
+    models = get_models()
 
-    return flask.render_template(
-            "inference.html",
-            virtual_sensors=virtual_sensors
-    )
+    return flask.render_template( "inference.html", models=models)
 
 @app.route("/result")
 def result(plot_div):
-    # plot_div = session["plot_div"]
-    return flask.render_template("result.html",
-            plot=flask.Markup(plot_div))
+    return flask.render_template("result.html", plot=flask.Markup(plot_div))
 
 @app.route("/prediction")
 def prediction():
     return flask.render_template("prediction.html")
 
-def get_virtual_sensors():
+def get_models():
 
     try:
-        virtual_sensors = json.load(open("virtual_sensors.json"))
+        models = json.load(open("models.json"))
     except:
-        virtual_sensors = {}
+        models = {}
 
-    return virtual_sensors
+    return models
 
 
-class CreateVirtualSensor(Resource):
+class CreateModel(Resource):
     def get(self):
 
         try:
-            virtual_sensors = json.load(open("virtual_sensors.json"))
-            return virtual_sensors, 200
+            models = json.load(open("models.json"))
+            return models, 200
         except:
-            return {"message": "No virtual sensors exist."}, 401
+            return {"message": "No models exist."}, 401
 
     def post(self):
-
 
         try:
             # Read params file
@@ -103,35 +98,107 @@ class CreateVirtualSensor(Resource):
             params["split"]["train_split"] = float(flask.request.form["train_split"]) / 10
             print(params)
 
-        # Create dict containing all metadata about virtual sensor
-        virtual_sensor_metadata = {}
-        # The ID of the virtual sensor is set to the current Unix time for
-        # uniqueness.
-        virtual_sensor_id = int(time.time())
-        virtual_sensor_metadata["id"] = virtual_sensor_id
-        virtual_sensor_metadata["params"] = params
+        # Create dict containing all metadata about models
+        model_metadata = {}
+        # The ID of the model is given an UUID.
+        model_id = str(uuid.uuid4())
+        model_metadata["id"] = model_id
+        model_metadata["params"] = params
 
-        # Save params to be used by DVC when creating virtual sensor.
+        # Save params to be used by DVC when creating model.
         yaml.dump(params, open("params.yaml", "w"), allow_unicode=True)
 
-        # Run DVC to create virtual sensor.
-        subprocess.run(["dvc", "repro"])
+        # Run DVC to create model.
+        subprocess.run(["dvc", "repro"], check=True)
 
         metrics = json.load(open(METRICS_FILE_PATH))
-        virtual_sensor_metadata["metrics"] = metrics
+        model_metadata["metrics"] = metrics
 
         try:
-            virtual_sensors = json.load(open("virtual_sensors.json"))
+            models = json.load(open("models.json"))
         except:
-            virtual_sensors = {}
+            models = {}
 
-        virtual_sensors[virtual_sensor_id] = virtual_sensor_metadata
-        print(virtual_sensors)
+        models[model_id] = model_metadata
+        print(models)
 
-        json.dump(virtual_sensors, open("virtual_sensors.json", "w+"))
+        json.dump(models, open("models.json", "w+"))
 
-        return flask.redirect("virtual_sensors")
+        return flask.redirect("create_model_form")
 
+
+class InferGUI(Resource):
+    def get(self):
+        return 200
+
+    def post(self):
+
+        model_id = flask.request.form["id"]
+        csv_file = flask.request.files["file"]
+        inference_df = pd.read_csv(csv_file)
+
+        models = get_models()
+        model = models[model_id]
+        params = model["params"]
+        target = params["clean"]["target"]
+
+        vs = VirtualSensor(params_file=params)
+
+        # Run DVC to fetch correct assets.
+        subprocess.run(["dvc", "repro"], check=True)
+
+        y_pred = vs.run_virtual_sensor(inference_df=inference_df)
+        window_size = params["sequentialize"]["window_size"]
+
+        x = np.linspace(0, y_pred.shape[0] - 1, y_pred.shape[0])
+
+        if flask.request.form.get("plot"):
+            fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+            if len(y_pred.shape) > 1:
+                y_pred = y_pred[:, -1].reshape(-1)
+
+
+            # If the input data contains the target value, show it in the plot
+            try:
+                original_target_values = inference_df[params["clean"]["target"]][::window_size]
+                if len(original_target_values.shape) > 1:
+                    original_target_values = original_target_values[:, -1].reshape(-1)
+                x_orig = np.linspace(0, original_target_values.shape[0] - 1,
+                        original_target_values.shape[0])
+                fig.add_trace(
+                    go.Scatter(x=x_orig, y=original_target_values, name="original"),
+                    secondary_y=False,
+                )
+            except:
+                pass
+
+            fig.add_trace(
+                go.Scatter(x=x, y=y_pred, name="pred"),
+                secondary_y=False,
+            )
+            fig.update_layout(title_text="Original vs predictions")
+            fig.update_xaxes(title_text="time step")
+            fig.update_yaxes(title_text="target variable", secondary_y=False)
+            fig.write_html("src/templates/prediction.html")
+
+            return flask.redirect("prediction")
+        else:
+            x = x.reshape(-1, 1)
+            y_pred = y_pred.reshape(-1, 1)
+
+            output_data = np.concatenate([x, y_pred], axis=1)
+            output_data = output_data.tolist()
+
+            # Put output data into JSON schema
+            output = {}
+            output["param"] = {"modeluid": model_id}
+            output["scalar"] = {
+                    "headers": ["date", target],
+                    "data": output_data
+            }
+
+            return output
 
 class Infer(Resource):
     def get(self):
@@ -139,69 +206,49 @@ class Infer(Resource):
 
     def post(self):
 
-        virtual_sensor_id = flask.request.form["id"]
-        csv_file = flask.request.files["file"]
-        inference_df = pd.read_csv(csv_file)
+        input_json = flask.request.get_json()
+        model_id = str(input_json["param"]["modeluid"])
 
-        virtual_sensors = get_virtual_sensors()
-        virtual_sensor = virtual_sensors[virtual_sensor_id]
-        params = virtual_sensor["params"]
+        inference_df = pd.DataFrame(
+            input_json["scalar"]["data"],
+            columns=input_json["scalar"]["headers"],
+        )
+        inference_df.set_index("date", inplace=True)
+
+        models = get_models()
+        model = models[model_id]
+        params = model["params"]
+        target = params["clean"]["target"]
 
         vs = VirtualSensor(params_file=params)
 
         # Run DVC to fetch correct assets.
-        subprocess.run(["dvc", "repro"])
+        subprocess.run(["dvc", "repro"], check=True)
 
         y_pred = vs.run_virtual_sensor(inference_df=inference_df)
         window_size = params["sequentialize"]["window_size"]
-        original_target_values = inference_df[params["clean"]["target"]][::window_size]
-        print(y_pred.shape)
-        print(original_target_values.shape)
 
         x = np.linspace(0, y_pred.shape[0] - 1, y_pred.shape[0])
-        x_orig = np.linspace(0, original_target_values.shape[0] - 1,
-                original_target_values.shape[0])
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        x = x.reshape(-1, 1)
+        y_pred = y_pred.reshape(-1, 1)
 
-        if len(original_target_values.shape) > 1:
-            original_target_values = original_target_values[:, -1].reshape(-1)
-        if len(y_pred.shape) > 1:
-            y_pred = y_pred[:, -1].reshape(-1)
+        output_data = np.concatenate([x, y_pred], axis=1)
+        output_data = output_data.tolist()
 
-        fig.add_trace(
-            go.Scatter(x=x_orig, y=original_target_values, name="original"),
-            secondary_y=False,
-        )
+        # Put output data into JSON schema
+        output = {}
+        output["param"] = {"modeluid": model_id}
+        output["scalar"] = {
+                "headers": ["date", target],
+                "data": output_data
+        }
 
-        fig.add_trace(
-            go.Scatter(x=x, y=y_pred, name="pred"),
-            secondary_y=False,
-        )
-        fig.update_layout(title_text="Original vs predictions")
-        fig.update_xaxes(title_text="time step")
-        fig.update_yaxes(title_text="target variable", secondary_y=False)
-        fig.write_html("src/templates/prediction.html")
-
-        # plot_div = plotly.offline.plot([
-        #     go.Scatter(
-        #         x=np.linspace(0, len(y_pred)),
-        #         y=y_pred
-        #     )],
-        #     output_type="div",
-        #     include_plotlyjs=True
-        # )
-        # print(plot_div)
-
-        # flask.session["plot_div"] = plot_div
-
-        # return flask.redirect(flask.url_for("result", plot_div=plot_div))
-        return flask.redirect("prediction")
-        # return flask.render_template("inference.html",
-        #         virtual_sensors=virtual_sensors, plot_div=plot_div)
+        return output
 
 
 if __name__ == "__main__":
 
-    api.add_resource(CreateVirtualSensor, "/create_virtual_sensor")
+    api.add_resource(CreateModel, "/create_model")
+    api.add_resource(InferGUI, "/infer_gui")
     api.add_resource(Infer, "/infer")
     app.run()

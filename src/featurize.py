@@ -54,11 +54,16 @@ def featurize(dir_path="", inference=False, inference_df=None):
     target = params["clean"]["target"]
 
     if inference:
+        output_columns = np.array(
+            pd.read_csv(OUTPUT_FEATURES_PATH, index_col=0, dtype=str)
+        ).reshape(-1)
+
         df = _featurize(
             inference_df,
             features,
             remove_features,
-            params
+            params,
+            output_columns
         )
 
         return df
