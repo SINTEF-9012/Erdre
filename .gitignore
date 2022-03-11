@@ -48,7 +48,7 @@ assets/metrics/
 assets/scalers/
 assets/predictions/
 assets/features/
-virtual_sensors.json
+models.json
 
 # Files related to compilation of cython
 build/
