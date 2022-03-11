@@ -153,6 +153,7 @@ stages:
         - assets/predictions/true_values.csv
         params:
         - clean.classification
+        - evaluate.show_inputs
         metrics:
         - assets/metrics/metrics.json
 

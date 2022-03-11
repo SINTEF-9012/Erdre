@@ -110,11 +110,17 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
     onehot_encode_target = yaml.safe_load(open("params.yaml"))["clean"][
         "onehot_encode_target"
     ]
+    show_inputs = params["show_inputs"]
     learning_method = params_train["learning_method"]
 
     test = np.load(test_filepath)
     X_test = test["X"]
     y_test = test["y"]
+
+    if show_inputs:
+        inputs = X_test
+    else:
+        inputs = None
 
     PREDICTIONS_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(y_test).to_csv(PREDICTIONS_PATH / "true_values.csv")
@@ -319,14 +325,14 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
             mape = mean_absolute_percentage_error(y_test[:, -1], mean[:, -1])
             r2 = r2_score(y_test[:, -1], mean[:, -1])
 
-            plot_prediction(y_test[:,-1], mean[:,-1], inputs=None, info="(R2: {})".format(r2))
+            plot_prediction(y_test[:,-1], mean[:,-1], inputs=inputs, info="(R2: {})".format(r2))
         else:
             mse = mean_squared_error(y_test, y_pred)
             rmse = mean_squared_error(y_test, y_pred, squared=False)
             mape = mean_absolute_percentage_error(y_test, y_pred)
             r2 = r2_score(y_test, y_pred)
         
-            plot_prediction(y_test, y_pred, inputs=None, info=f"(R2: {r2:.2f})")
+            plot_prediction(y_test, y_pred, inputs=inputs, info=f"(R2: {r2:.2f})")
 
         print("MSE: {}".format(mse))
         print("RMSE: {}".format(rmse))
@@ -524,9 +530,6 @@ def plot_prediction(y_true, y_pred, inputs=None, info=""):
     if len(y_pred.shape) > 1:
         y_pred = y_pred[:, -1].reshape(-1)
 
-    # y_true = y_true[:4000]
-    # y_pred = y_pred[:4000]
-
     fig.add_trace(
         go.Scatter(x=x, y=y_true, name="true"),
         secondary_y=False,
@@ -538,7 +541,8 @@ def plot_prediction(y_true, y_pred, inputs=None, info=""):
     )
 
     if inputs is not None:
-        input_columns = pd.read_csv(INPUT_FEATURES_PATH)
+        input_columns = pd.read_csv(INPUT_FEATURES_PATH, header=None)
+        print(inputs.shape)
 
         if len(inputs.shape) == 3:
             n_features = inputs.shape[-1]
@@ -549,13 +553,15 @@ def plot_prediction(y_true, y_pred, inputs=None, info=""):
 
             if len(inputs.shape) == 3:
                 fig.add_trace(
-                    go.Scatter(x=x, y=inputs[:, -1, i], name=input_columns.iloc[i, 1]),
+                    go.Scatter(x=x, y=inputs[:, -1, i],
+                        name=input_columns.iloc[i,0]),
                     secondary_y=True,
                 )
             elif len(inputs.shape) == 2:
                 fig.add_trace(
                     go.Scatter(
-                        x=x, y=inputs[:, i - n_features], name=input_columns.iloc[i, 1]
+                        x=x, y=inputs[:, i - n_features],
+                        name=input_columns.iloc[i,0]
                     ),
                     secondary_y=True,
                 )
@@ -616,6 +622,7 @@ def plot_sequence_predictions(y_true, y_pred):
     PREDICTION_PLOT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     fig.write_html(str(PLOTS_PATH / "prediction_sequences.html"))
+
 def prediction_interval_plot(true_data, predicted_mean, predicted_std,
                      plot_path, file_name="Uncertainty_plot.html", experiment_length=5000):
     """ This function plots 95% prediction interval for bayesian neural network with gaussain output

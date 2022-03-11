@@ -2,7 +2,7 @@ profile:
     dataset: name_of_dataset
 
 clean:
-    target: name_of_target
+    target: name_of_target_variable
     classification: False
     onehot_encode_target: False
     combine_files: False
@@ -73,10 +73,11 @@ sequentialize:
 
 train:
     learning_method: dnn
-    n_epochs: 500
+    n_epochs: 10
     batch_size: 256
     kernel_size: 5
-    early_stopping: False
+    early_stopping: True
     patience: 20
 
 evaluate:
+    show_inputs: True
