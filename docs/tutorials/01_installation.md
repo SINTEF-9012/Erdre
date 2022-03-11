@@ -2,9 +2,24 @@
 
 ## 1. Installation
 
-Developed using Python3.8. You can install the required modules by creating a
-virtual environment and install the `requirements.txt`-file (run these commands
-from the main folder):
+
+Erdre requires a working installation of Python3.8.
+
+Clone this repository:
+
+```
+git clone https://github.com/SINTEF-9012/Erdre
+```
+
+Enter the cloned repository:
+
+```
+cd Erdre/
+```
+
+
+You can install the required modules by creating a virtual environment and
+install the `requirements.txt`-file (run these commands from the main folder):
 
 ```
 mkdir venv
