@@ -33,6 +33,7 @@ Session.vim
 # python venv
 env/
 venv/
+venv*
 
 # large files
 model_tuning/
