@@ -22,10 +22,11 @@ import yaml
 from config import (
     DATA_PATH,
     DATA_SEQUENTIALIZED_PATH,
-    NON_DL_METHODS,
+    NON_SEQUENCE_LEARNING_METHODS,
     OUTPUT_FEATURES_PATH,
 )
 from preprocess_utils import find_files, flatten_sequentialized, split_sequences
+from cutils import c_split_sequences
 
 
 def sequentialize(dir_path):
@@ -64,7 +65,13 @@ def sequentialize(dir_path):
         # Combine y and X to get correct format for sequentializing
         data = np.hstack((y, X))
 
+        print(data.shape)
+
         # Split into sequences
+        import time
+
+
+        start = time.time()
         X, y = split_sequences(
             data,
             window_size,
@@ -73,6 +80,23 @@ def sequentialize(dir_path):
             future_predict=future_predict,
             overlap=overlap,
         )
+        end = time.time()
+        print("Time Python: ", end-start)
+
+
+        start = time.time()
+
+        X, y = c_split_sequences(
+            data,
+            window_size,
+            target_size=target_size,
+            n_target_columns=n_output_cols,
+            future_predict=int(future_predict),
+            overlap=overlap,
+        )
+
+        end = time.time()
+        print("Time C: ", end-start)
 
         if learning_method in NON_SEQUENCE_LEARNING_METHODS:
             X = flatten_sequentialized(X)
