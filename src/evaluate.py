@@ -57,6 +57,8 @@ from config import (
     PREDICTIONS_FILE_PATH
 )
 
+import shap
+
 
 # class ConformalPredictionModel(RegressorMixin):
 class ConformalPredictionModel(RegressorAdapter):
