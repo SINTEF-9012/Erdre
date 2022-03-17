@@ -22,6 +22,7 @@ import yaml
 from config import (
     DATA_PATH,
     DATA_SEQUENTIALIZED_PATH,
+    NON_SEQUENCE_LEARNING_METHODS,
     NON_DL_METHODS,
     OUTPUT_FEATURES_PATH,
 )
