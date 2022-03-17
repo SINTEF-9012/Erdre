@@ -294,29 +294,6 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
         with open(METRICS_FILE_PATH, "w") as f:
             json.dump(dict(accuracy=accuracy), f)
 
-        # ==========================================
-        # TODO: Fix SHAP code
-        # explainer = shap.TreeExplainer(model, X_test[:10])
-        # shap_values = explainer.shap_values(X_test[:10])
-        # plt.figure()
-        # shap.summary_plot(shap_values[0][:,0,:], X_test[:10][:,0,:])
-        # shap.image_plot([shap_values[i][0] for i in range(len(shap_values))], X_test[:10])
-        # input_columns = pd.read_csv(INPUT_FEATURES_PATH).iloc[:,-1]
-        # print(input_columns)
-        # shap.force_plot(explainer.expected_value[0], shap_values[0][0])
-
-        # plt.savefig("test.png")
-
-        # feature_importances = model.feature_importances_
-        # imp = list()
-        # for i, f in enumerate(feature_importances):
-        #     imp.append((f,i))
-
-        # sorted_feature_importances = sorted(imp)
-
-        # print("Feature importances")
-        # print(sorted_feature_importances)
-        # ==========================================
 
     # Regression:
     else:
@@ -349,6 +326,51 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
             json.dump(dict(mse=mse, rmse=rmse, mape=mape, r2=r2), f)
 
     save_predictions(pd.DataFrame(y_pred))
+
+
+    # ==========================================
+    # TODO: Fix SHAP code
+    # explainer = shap.TreeExplainer(model, X_test[:10])
+    # shap_values = explainer.shap_values(X_test[:10])
+    # plt.figure()
+    # shap.summary_plot(shap_values[0][:,0,:], X_test[:10][:,0,:])
+    # shap.image_plot([shap_values[i][0] for i in range(len(shap_values))], X_test[:10])
+    # shap.force_plot(explainer.expected_value[0], shap_values[0][0])
+
+    # plt.savefig("test.png")
+
+    # feature_importances = model.feature_importances_
+    # imp = list()
+    # for i, f in enumerate(feature_importances):
+    #     imp.append((f,i))
+
+    # sorted_feature_importances = sorted(imp)
+
+    # print("Feature importances")
+    # print(sorted_feature_importances)
+    # ==========================================
+    # shap.initjs()
+    """
+    input_columns = pd.read_csv(INPUT_FEATURES_PATH)
+    input_columns = list(input_columns)
+    print(input_columns)
+    train = np.load(train_filepath)
+    X_train = train["X"]
+    ex = shap.KernelExplainer(model, shap.sample(X_train, 100))
+    shap_values = ex.shap_values(X_test[0,:])
+    shap.force_plot(ex.expected_value, shap_values[0], X_test[0,:], show=False,
+            matplotlib=True, feature_names=input_columns)
+
+    # plt.savefig("test1.png")
+    plt.show()
+
+    # shap_values = ex.shap_values(X_test)
+    shap_values = ex.shap_values(shap.sample(X_test, 100))
+    # shap.summary_plot(shap_values[0], X_test)#, feature_names=input_columns)
+    shap.summary_plot(shap_values[0], shap.sample(X_test, 100))#, feature_names=input_columns)
+    # plt.savefig("test2.png")
+    plt.show()
+    """
 
 
 def compute_uncertainty(model, test_data, iterations=100):
