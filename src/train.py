@@ -112,25 +112,19 @@ def train(filepath):
             loss=loss,
             metrics=metrics,
         )
-    elif learning_method == "dnn":
-        model = nn.dnn(
+    elif learning_method.startswith("dnn"):
+        build_model = getattr(nn, learning_method)
+        model = build_model(
             n_features,
             output_length=output_length,
             output_activation=output_activation,
             loss=loss,
             metrics=metrics,
         )
-    elif learning_method == "dnn_simple":
-        model = nn.dnn_simple(
-            n_features,
-            output_length=output_length,
-            output_activation=output_activation,
-            loss=loss,
-            metrics=metrics,
-        )
-    elif learning_method == "lstm":
+    elif learning_method.startswith("lstm"):
         hist_size = X_train.shape[-2]
-        model = nn.lstm(
+        build_model = getattr(nn, learning_method)
+        model = build_model(
             hist_size,
             n_features,
             n_steps_out=output_length,
@@ -282,6 +276,6 @@ def train(filepath):
 
 if __name__ == "__main__":
 
-    np.random.seed(2020)
+    np.random.seed(2021)
 
     train(sys.argv[1])
