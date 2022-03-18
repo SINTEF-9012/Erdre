@@ -252,6 +252,39 @@ def lstm(
 
     return model
 
+def lstm2(
+        hist_size,
+        n_features,
+        n_steps_out=1,
+        output_activation="linear",
+        loss="mse",
+        metrics="mse",
+):
+    """Define a LSTM model architecture using Keras.
+
+    Args:
+        hist_size (int): Number of time steps to include in each sample, i.e.
+            how much history should be matched with a given target.
+        n_features (int): Number of features for each time step, in the input
+            data.
+
+    Returns:
+        model (Keras model): Model to be trained.
+
+    """
+
+    model = models.Sequential()
+    model.add(
+        layers.LSTM(50, input_shape=(hist_size, n_features))
+    )  # , return_sequences=True))
+    # model.add(layers.Dropout(0.5))
+    # model.add(layers.LSTM(32, activation='relu'))
+    # model.add(layers.LSTM(16, activation='relu'))
+    model.add(layers.Dense(100, activation="relu"))
+    model.add(layers.Dense(n_steps_out, activation=output_activation))
+    model.compile(optimizer="adam", loss=loss, metrics=metrics)
+
+    return model
 
 def cnndnn(input_x, input_y, n_forecast_hours, n_steps_out=1):
     """Define a model architecture that combines CNN and DNN.
