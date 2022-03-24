@@ -51,6 +51,7 @@ from config import (
     INTERVALS_PLOT_PATH,
     METRICS_FILE_PATH,
     NON_DL_METHODS,
+    OUTPUT_FEATURES_PATH,
     PLOTS_PATH,
     PREDICTION_PLOT_PATH,
     PREDICTIONS_PATH,
@@ -212,6 +213,7 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
     else:
         if learning_method in NON_DL_METHODS:
             model = load(model_filepath)
+            y_pred = model.predict(X_test)
         elif learning_method == 'brnn':
             model = nn.brnn(data_size=X_test.shape[0],
                             window_size=X_test.shape[1],
