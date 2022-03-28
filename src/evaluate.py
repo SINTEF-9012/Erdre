@@ -19,6 +19,10 @@ import plotly
 import plotly.graph_objects as go
 import seaborn as sn
 import yaml
+import interpret
+from interpret import set_visualize_provider
+from interpret.provider import InlineProvider
+from interpret.blackbox import LimeTabular
 from joblib import load
 from nonconformist.base import RegressorAdapter
 from nonconformist.cp import IcpRegressor
@@ -329,6 +333,11 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
 
     save_predictions(pd.DataFrame(y_pred))
 
+    # if learning_method.lower() == "explainableboosting":
+    #     explain_glassbox(model)
+    # else:
+    #     explain_blackbox(model, X_test, X_test[:10], y_test[:10])
+
 
     # ==========================================
     # TODO: Fix SHAP code
@@ -352,27 +361,51 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
     # print(sorted_feature_importances)
     # ==========================================
     # shap.initjs()
-    """
-    input_columns = pd.read_csv(INPUT_FEATURES_PATH)
-    input_columns = list(input_columns)
-    print(input_columns)
+    # """
+
+    input_columns = pd.read_csv(INPUT_FEATURES_PATH, header=None)
+    input_columns = input_columns.iloc[:,0].to_list()
     train = np.load(train_filepath)
     X_train = train["X"]
     ex = shap.KernelExplainer(model, shap.sample(X_train, 100))
-    shap_values = ex.shap_values(X_test[0,:])
-    shap.force_plot(ex.expected_value, shap_values[0], X_test[0,:], show=False,
-            matplotlib=True, feature_names=input_columns)
+    shap_values = ex.shap_values(shap.sample(X_test, 10))
 
-    # plt.savefig("test1.png")
-    plt.show()
+    """
+    # shap_values = ex.shap_values(X_test[0,0])
+    shap.force_plot(ex.expected_value, shap_values[0], shap.sample(X_test, 10), show=False,
+            feature_names=input_columns) #, matplotlib=True)
 
-    # shap_values = ex.shap_values(X_test)
-    shap_values = ex.shap_values(shap.sample(X_test, 100))
-    # shap.summary_plot(shap_values[0], X_test)#, feature_names=input_columns)
-    shap.summary_plot(shap_values[0], shap.sample(X_test, 100))#, feature_names=input_columns)
-    # plt.savefig("test2.png")
+    plt.savefig("test1.png")
     plt.show()
     """
+
+    plt.clf()
+    plt.cla()
+    plt.close()
+
+    # shap_values = ex.shap_values(X_test)
+    # shap_values = ex.shap_values(shap.sample(X_test, 10))
+    # shap.summary_plot(shap_values[0], X_test)#, feature_names=input_columns)
+    shap.summary_plot(shap_values[0], shap.sample(X_test, 10),
+            feature_names=input_columns, plot_size=(8,5), show=False)
+    plt.savefig("t.png", bbox_inches='tight', dpi=300)
+    plt.show()
+    # """
+
+def explain_blackbox(model, X, X_sample, y_sample):
+
+    lime = LimeTabular(predict_fn=model.predict, data=X)
+    lime_local = lime.explain_local(X_sample, y_sample)
+    interpret.show(lime_local)
+
+def explain_glassbox(model):
+
+    # set_visualize_provider(InlineProvider())
+
+    model_global = model.explain_global()
+    # with open("htmltest.html", "w") as f:
+    #     f.write(interpret.show(model_global))
+    interpret.show(model_global)
 
 
 def compute_uncertainty(model, test_data, iterations=100):

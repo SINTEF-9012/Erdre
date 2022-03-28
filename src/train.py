@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 import yaml
+from interpret.glassbox import ExplainableBoostingClassifier
 from joblib import dump
 from sklearn.discriminant_analysis import (
     LinearDiscriminantAnalysis,
@@ -153,6 +154,11 @@ def train(filepath):
             model = xgb.XGBClassifier()
         else:
             model = xgb.XGBRegressor()
+    elif learning_method.lower() == "explainableboosting":
+        if classification:
+            model = ExplainableBoostingClassifier(max_rounds=2)
+        else:
+            model = ExplainableBoostingRegressor()
     elif learning_method == "lda":
         if classification:
             model = LinearDiscriminantAnalysis()
@@ -191,7 +197,9 @@ def train(filepath):
         raise NotImplementedError(f"Learning method {learning_method} not implemented.")
 
     if learning_method in NON_DL_METHODS:
+        print("Fitting model...")
         model.fit(X_train, y_train)
+        print("Done fitting model")
         dump(model, MODELS_FILE_PATH)
     else:
         print(model.summary())
