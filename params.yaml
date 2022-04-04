@@ -2,10 +2,10 @@ profile:
     dataset: cnc_milling_with_toolwear
 
 clean:
-    target: tool_condition
-    classification: True
+    target: S1_OutputPower
+    classification: False
     onehot_encode_target: False
-    combine_files: True
+    combine_files: False
     percentage_zeros_threshold: 1.0
     correlation_metric: pearson
     input_max_correlation_threshold: 1.0
@@ -13,9 +13,11 @@ clean:
 featurize:
     # If empty, all input variables are used
     variables_to_include:
+        - X1_CommandPosition
+        - Y1_CommandPosition
 
     # By setting this to True, the add_-options below are overrided.
-    use_all_engineered_features_on_all_variables: False
+    use_all_engineered_features_on_all_variables: True
 
     # List the variables below each add_* to add engineered feature
     add_sum:
@@ -50,6 +52,8 @@ featurize:
     # List features here to remove the raw variables after engineering features
     # from them
     remove_features:
+        - X1_CommandPosition
+        - Y1_CommandPosition
         # - variable1
     target_min_correlation_threshold: 0.0
 
@@ -70,7 +74,7 @@ sequentialize:
     future_predict: False
 
 train:
-    learning_method: dnn
+    learning_method: lstm
     n_epochs: 200
     batch_size: 256
     kernel_size: 5
