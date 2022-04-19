@@ -1,53 +1,93 @@
-clean:
-  classification: false
-  combine_files: false
-  correlation_metric: pearson
-  input_max_correlation_threshold: 1.0
-  onehot_encode_target: false
-  percentage_zeros_threshold: 1.0
-  target: Accel_FFT_Acc1_range1_Amplitudes_0
-evaluate:
-  show_inputs: true
-featurize:
-  add_gradient: null
-  add_maximum: null
-  add_mean: null
-  add_min_max_range: null
-  add_minimum: null
-  add_peak_frequency: null
-  add_slope: null
-  add_slope_cos: null
-  add_slope_sin: null
-  add_standard_deviation: null
-  add_sum: null
-  add_variance: null
-  remove_features: null
-  rolling_window_size_max_min: 10
-  rolling_window_size_mean: 10
-  rolling_window_size_standard_deviation: 10
-  rolling_window_size_sum: 10
-  target_min_correlation_threshold: 0.0
-  use_all_engineered_features_on_all_variables: false
-  variables_to_include: null
 profile:
-  dataset: ideko
-scale:
-  input: minmax
-  output: null
-sequentialize:
-  future_predict: false
-  overlap: 0
-  shuffle_samples: false
-  target_size: 1
-  window_size: 5
+    dataset: bhp_fitbit
+
+clean:
+    # target: fas_category
+    target: fas
+    classification: False
+    onehot_encode_target: False
+    combine_files: True
+    percentage_zeros_threshold: 1.0
+    correlation_metric: pearson
+    input_max_correlation_threshold: 1.0
+
+featurize:
+    # If empty, all input variables are used
+    variables_to_include:
+        - resting_heart_rate
+        - revitalization_score
+        - calories_min
+        - distance_max
+        - distance_mean
+        - heart_rate_bpm_min
+        - heart_rate_bpm_mean
+        - steps
+        - deep_sleep_in_minutes
+        # - high_frequency
+        # - low_frequency
+
+    # By setting this to True, the add_-options below are overrided.
+    use_all_engineered_features_on_all_variables: False
+
+    # List the variables below each add_* to add engineered feature
+    add_sum:
+        # - variable1
+    add_gradient:
+        # - variable1
+    add_mean:
+        # - variable1
+    add_maximum:
+        # - variable1
+    add_minimum:
+        # - variable1
+    add_min_max_range:
+        # - variable1
+    add_slope:
+        # - variable1
+    add_slope_sin:
+        # - variable1
+    add_slope_cos:
+        # - variable1
+    add_standard_deviation:
+        # - variable1
+    add_variance:
+        # - variable1
+    add_peak_frequency:
+        # - variable1
+    rolling_window_size_sum: 10
+    rolling_window_size_mean: 10
+    rolling_window_size_max_min: 10
+    rolling_window_size_standard_deviation: 10
+
+    # List features here to remove the raw variables after engineering features
+    # from them
+    remove_features:
+        # - variable1
+    target_min_correlation_threshold: 0.0
+
 split:
-  calibrate_split: 0.0
-  shuffle_files: false
-  train_split: 0.7
+    train_split: 0.5
+    shuffle_files: False
+    calibrate_split: 0.0
+
+scale:
+    input: minmax
+    output:
+
+sequentialize:
+    window_size: 1
+    overlap: 0
+    target_size: 1
+    shuffle_samples: True
+    future_predict: False
+
 train:
-  batch_size: 256
-  early_stopping: true
-  kernel_size: 5
-  learning_method: cnn
-  n_epochs: 10
-  patience: 20
+    learning_method: rf
+    n_epochs: 1000
+    batch_size: 256
+    kernel_size: 6
+    early_stopping: True
+    patience: 100
+
+evaluate:
+    show_inputs: True

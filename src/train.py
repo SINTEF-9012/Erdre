@@ -22,9 +22,11 @@ from sklearn.discriminant_analysis import (
     LinearDiscriminantAnalysis,
     QuadraticDiscriminantAnalysis,
 )
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, GradientBoostingClassifier, GradientBoostingRegressor
+from sklearn.linear_model import LinearRegression, ridge_regression, SGDRegressor, SGDClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, roc_auc_score
 from sklearn.model_selection import RandomizedSearchCV
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
@@ -141,12 +143,36 @@ def train(filepath):
         if classification:
             model = RandomForestClassifier()
         else:
-            model = RandomForestRegressor()
+            model = RandomForestRegressor(n_estimators=2000)
+    elif learning_method == "kneighbors" or learning_method == "kn":
+        if classification:
+            model = KNeighborsClassifier()
+        else:
+            model = KNeighborsRegressor()
+    elif learning_method == "gradientboosting" or learning_method == "gb":
+        if classification:
+            model = GradientBoostingClassifier()
+        else:
+            model = GradientBoostingRegressor()
     elif learning_method == "xgboost":
         if classification:
             model = xgb.XGBClassifier()
         else:
             model = xgb.XGBRegressor()
+    elif learning_method == "linearregression":
+        if classification:
+            raise ValueError(
+                f"Learning method {learning_method} only works with regression."
+            )
+        else:
+            model = LinearRegression()
+    elif learning_method == "ridgeregression":
+        if classification:
+            raise ValueError(
+                f"Learning method {learning_method} only works with regression."
+            )
+        else:
+            model = ridge_regression()
     elif learning_method == "lda":
         if classification:
             model = LinearDiscriminantAnalysis()
@@ -154,6 +180,11 @@ def train(filepath):
             raise ValueError(
                 f"Learning method {learning_method} only works with classification."
             )
+    elif learning_method == "sgd":
+        if classification:
+            model = SGDClassifier()
+        else:
+            model = SGDRegressor()
     elif learning_method == "qda":
         if classification:
             model = QuadraticDiscriminantAnalysis()
