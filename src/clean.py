@@ -27,6 +27,7 @@ from config import (
     FEATURES_PATH,
     OUTPUT_FEATURES_PATH,
     PROFILE_PATH,
+    REMOVABLE_FEATURES
 )
 from preprocess_utils import find_files
 
@@ -57,7 +58,9 @@ def clean(dir_path=DATA_PATH_RAW, inference_df=None):
 
     if inference_df is None:
         # Find removable variables from profiling report
-        removable_variables = parse_profile_warnings()
+        removable_features = parse_profile_warnings()
+        pd.DataFrame(removable_features).to_csv(REMOVABLE_FEATURES)
+
 
         # Find input files
         filepaths = find_files(dir_path, file_extension=".csv")
@@ -67,12 +70,14 @@ def clean(dir_path=DATA_PATH_RAW, inference_df=None):
         for filepath in filepaths:
             dfs.append(pd.read_csv(filepath))
     else:
-        # No removable variables when running inference
-        removable_variables = []
+        # Remove features that should not be used with the current model.
+        removable_features = np.array(pd.read_csv(REMOVABLE_FEATURES, index_col=0)).reshape(
+            -1
+        )
 
         dfs = [inference_df]
 
-    dfs = read_data(dfs, removable_variables)
+    dfs = read_data(dfs, removable_features)
     combined_df = pd.concat(dfs, ignore_index=True)
 
     if inference_df is not None:
@@ -122,7 +127,7 @@ def clean(dir_path=DATA_PATH_RAW, inference_df=None):
         pd.DataFrame(output_columns).to_csv(OUTPUT_FEATURES_PATH)
 
 
-def read_data(dfs, removable_variables):
+def read_data(dfs, removable_features):
 
     cleaned_dfs = []
 
@@ -132,8 +137,9 @@ def read_data(dfs, removable_variables):
         if df.iloc[:, 0].is_monotonic:
             df = df.iloc[:, 1:]
 
-        for column in removable_variables:
-            del df[column]
+        for column in removable_features:
+            if column in df:
+                del df[column]
 
         df.dropna(inplace=True)
 
@@ -180,7 +186,7 @@ def parse_profile_warnings():
     """Read profile warnings and find which columns to delete.
 
     Returns:
-        removable_variables (list): Which columns to delete from data set.
+        removable_features (list): Which columns to delete from data set.
 
     """
     params = yaml.safe_load(open("params.yaml"))["clean"]
@@ -199,7 +205,7 @@ def parse_profile_warnings():
     variables = list(profile_json["variables"].keys())
     correlations = profile_json["correlations"]["pearson"]
 
-    removable_variables = []
+    removable_features = []
 
     percentage_zeros_threshold = params["percentage_zeros_threshold"]
     input_max_correlation_threshold = params["input_max_correlation_threshold"]
@@ -210,12 +216,12 @@ def parse_profile_warnings():
         variable = " ".join(message[message.index("column") + 1:])
 
         if warning == "[CONSTANT]":
-            removable_variables.append(variable)
+            removable_features.append(variable)
             print(f"Removed variable '{variable}' because it is constant.")
         if warning == "[ZEROS]":
             p_zeros = profile_json["variables"][variable]["p_zeros"]
             if p_zeros > percentage_zeros_threshold:
-                removable_variables.append(variable)
+                removable_features.append(variable)
                 print(
                     f"Removed variable '{variable}' because % of zeros exceeds {percentage_zeros_threshold*100}%."
                 )
@@ -229,10 +235,10 @@ def parse_profile_warnings():
                         and variable != correlated_variable
                         and variable != target
                         and correlated_variable != target
-                        and variable not in removable_variables
+                        and variable not in removable_features
                     ):
 
-                        removable_variables.append(correlated_variable)
+                        removable_features.append(correlated_variable)
                         print(
                             f"Removed variable '{correlated_variable}' because of high correlation ({correlation_scores[correlated_variable]:.2f}) with variable '{variable}'."
                         )
@@ -243,13 +249,13 @@ def parse_profile_warnings():
                 pass
                 # print(f"{variable}: Could not find correlation score.")
 
-    removable_variables = list(set(removable_variables))
+    removable_features = list(set(removable_features))
 
-    if target in removable_variables:
+    if target in removable_features:
         print("Warning related to target variable. Check profile for details.")
-        removable_variables.remove(target)
+        removable_features.remove(target)
 
-    return removable_variables
+    return removable_features
 
 
 if __name__ == "__main__":

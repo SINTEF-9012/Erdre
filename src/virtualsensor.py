@@ -126,6 +126,9 @@ class VirtualSensor:
 
         X = split_X_sequences(X, window_size, overlap=overlap)
 
+        if learning_method in NON_SEQUENCE_LEARNING_METHODS:
+            X = flatten_sequentialized(X)
+
         if learning_method in NON_DL_METHODS:
             model = load(MODELS_FILE_PATH)
         else:

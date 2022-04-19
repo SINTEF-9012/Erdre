@@ -51,6 +51,9 @@ INPUT_FEATURES_PATH = FEATURES_PATH / "input_columns.csv"
 OUTPUT_FEATURES_PATH = FEATURES_PATH / "output_columns.csv"
 """Path to file containing output features."""
 
+REMOVABLE_FEATURES = FEATURES_PATH / "removable_features.csv"
+"""Path to file containing removable features."""
+
 DATA_PATH = ASSETS_PATH / "data"
 """Path to data."""
 
