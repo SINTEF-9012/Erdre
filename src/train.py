@@ -143,7 +143,7 @@ def train(filepath):
         if classification:
             model = RandomForestClassifier()
         else:
-            model = RandomForestRegressor(n_estimators=2000)
+            model = RandomForestRegressor(n_estimators=1000)
     elif learning_method == "kneighbors" or learning_method == "kn":
         if classification:
             model = KNeighborsClassifier()

@@ -82,7 +82,7 @@ sequentialize:
     future_predict: False
 
 train:
-    learning_method: rf
+    learning_method: kneighbors
     n_epochs: 1000
     batch_size: 256
     kernel_size: 6
