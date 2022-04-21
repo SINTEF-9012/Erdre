@@ -328,6 +328,7 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
             r2 = r2_score(y_test[:, -1], mean[:, -1])
 
             plot_prediction(y_test[:,-1], mean[:,-1], inputs=inputs, info="(R2: {})".format(r2))
+            plot_true_vs_pred(y_test[:,-1], mean[:,-1])
         else:
             mse = mean_squared_error(y_test, y_pred)
             rmse = mean_squared_error(y_test, y_pred, squared=False)
@@ -335,6 +336,7 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
             r2 = r2_score(y_test, y_pred)
         
             plot_prediction(y_test, y_pred, inputs=inputs, info=f"(R2: {r2:.2f})")
+            plot_true_vs_pred(y_test, y_pred)
 
         print("MSE: {}".format(mse))
         print("RMSE: {}".format(rmse))
@@ -508,6 +510,14 @@ def plot_confidence_intervals(df):
 
     fig.write_html(str(PLOTS_PATH / "intervals.html"))
 
+
+def plot_true_vs_pred(y_true, y_pred):
+
+    plt.figure(figsize=(10, 10))
+    plt.scatter(y_true, y_pred)
+    plt.xlabel("True values")
+    plt.ylabel("Predicted values")
+    plt.savefig(PLOTS_PATH / "true_vs_pred.png")
 
 def plot_prediction(y_true, y_pred, inputs=None, info=""):
     """Plot the prediction compared to the true targets.
