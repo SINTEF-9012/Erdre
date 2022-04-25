@@ -22,6 +22,7 @@ stages:
         outs:
         - assets/data/cleaned
         - assets/features/output_columns.csv
+        - assets/features/removable_features.csv
         params:
         - clean.target
         - clean.classification

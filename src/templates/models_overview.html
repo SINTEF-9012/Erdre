@@ -17,7 +17,7 @@
                             <td>{{models[model]["id"]}}</td>
                             <td>{{models[model]["params"]["profile"]["dataset"]}}</td>
                             <td>{{models[model]["params"]["clean"]["target"]}}</td>
-                            <td>{{models[model]["metrics"]["r2"]}}</td>
+                            <td>{{ "%.2f" % models[model]["metrics"]["r2"]}}</td>
                         </tr>
                         {%endfor%}
                     </tbody>

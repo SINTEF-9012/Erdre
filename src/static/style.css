@@ -108,6 +108,7 @@ th {
     background-color: #333;
     color: white;
     font-weight: 600;
+    text-align: left;
 }
 
 th, td {

@@ -55,6 +55,7 @@ def clean(dir_path=DATA_PATH_RAW, inference_df=None):
     if dataset_name is not None and inference_df is None:
         dir_path += "/" + dataset_name
 
+    FEATURES_PATH.mkdir(parents=True, exist_ok=True)
 
     if inference_df is None:
         # Find removable variables from profiling report
@@ -123,7 +124,6 @@ def clean(dir_path=DATA_PATH_RAW, inference_df=None):
                     / (os.path.basename(filepath).replace(".", "-cleaned."))
                 )
 
-        FEATURES_PATH.mkdir(parents=True, exist_ok=True)
         pd.DataFrame(output_columns).to_csv(OUTPUT_FEATURES_PATH)
 
 
