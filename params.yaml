@@ -1,13 +1,13 @@
 clean:
   classification: false
-  combine_files: false
+  combine_files: true
   correlation_metric: pearson
   input_max_correlation_threshold: 1.0
   onehot_encode_target: false
   percentage_zeros_threshold: 1.0
-  target: S1_OutputPower
+  target: Spindle_Torque
 evaluate:
-  show_inputs: true
+  show_inputs: false
 featurize:
   add_gradient: null
   add_maximum: null
@@ -21,16 +21,22 @@ featurize:
   add_standard_deviation: null
   add_sum: null
   add_variance: null
-  remove_features: null
-  rolling_window_size_max_min: 10
-  rolling_window_size_mean: 10
-  rolling_window_size_standard_deviation: 10
-  rolling_window_size_sum: 10
+  remove_features:
+  - Axis_X_Real_Position
+  - Axis_Y_Real_Position
+  - Axis_Z_Real_Position
+  rolling_window_size_max_min: 100
+  rolling_window_size_mean: 100
+  rolling_window_size_standard_deviation: 100
+  rolling_window_size_sum: 100
   target_min_correlation_threshold: 0.0
-  use_all_engineered_features_on_all_variables: false
-  variables_to_include: null
+  use_all_engineered_features_on_all_variables: true
+  variables_to_include:
+  - Axis_X_Real_Position
+  - Axis_Y_Real_Position
+  - Axis_Z_Real_Position
 profile:
-  dataset: cnc_milling_with_toolwear
+  dataset: automotive_pn40
 scale:
   input: minmax
   output: null
@@ -39,15 +45,15 @@ sequentialize:
   overlap: 0
   shuffle_samples: false
   target_size: 1
-  window_size: 5
+  window_size: 10
 split:
   calibrate_split: 0.0
   shuffle_files: false
-  train_split: 0.7
+  train_split: 0.5
 train:
   batch_size: 256
   early_stopping: true
-  kernel_size: 5
-  learning_method: cnn
-  n_epochs: 10
-  patience: 20
+  kernel_size: 6
+  learning_method: lstm
+  n_epochs: 200
+  patience: 100

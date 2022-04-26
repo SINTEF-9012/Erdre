@@ -111,10 +111,11 @@ class VirtualSensor:
         window_size = params["sequentialize"]["window_size"]
         overlap = params["sequentialize"]["overlap"]
 
-        self._check_features_existence(inference_df)
 
         df = clean(inference_df=inference_df)
         df = featurize(inference=True, inference_df=df)
+
+        self._check_features_existence(df)
 
         X = np.array(df)
 
@@ -158,6 +159,8 @@ class VirtualSensor:
         """
 
         input_features = pd.read_csv(self.input_features_file, index_col=0)
+        print(input_features)
+        print(inference_df.columns)
 
         for feature in input_features["0"]:
             assert (

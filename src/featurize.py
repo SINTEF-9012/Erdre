@@ -66,6 +66,17 @@ def featurize(dir_path="", inference=False, inference_df=None):
             output_columns
         )
 
+        input_columns = pd.read_csv(INPUT_FEATURES_PATH, index_col=0)
+        input_columns = [feature for feature in input_columns["0"]]
+
+        for expected_col in input_columns:
+            if expected_col not in df.columns:
+                raise ValueError(f"Variable {expected_col} not in input data.")
+
+        for actual_col in df.columns:
+            if actual_col not in input_columns:
+                del df[actual_col]
+
         return df
     else:
         filepaths = find_files(dir_path, file_extension=".csv")

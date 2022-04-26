@@ -554,8 +554,8 @@ def plot_prediction(y_true, y_pred, inputs=None, info=""):
     )
 
     if inputs is not None:
-        input_columns = pd.read_csv(INPUT_FEATURES_PATH, header=None)
-        print(inputs.shape)
+        input_columns = pd.read_csv(INPUT_FEATURES_PATH, index_col=0)
+        input_columns = [feature for feature in input_columns["0"]]
 
         if len(inputs.shape) == 3:
             n_features = inputs.shape[-1]
@@ -567,14 +567,14 @@ def plot_prediction(y_true, y_pred, inputs=None, info=""):
             if len(inputs.shape) == 3:
                 fig.add_trace(
                     go.Scatter(x=x, y=inputs[:, -1, i],
-                        name=input_columns.iloc[i,0]),
+                        name=input_columns[i]),
                     secondary_y=True,
                 )
             elif len(inputs.shape) == 2:
                 fig.add_trace(
                     go.Scatter(
                         x=x, y=inputs[:, i - n_features],
-                        name=input_columns.iloc[i,0]
+                        name=input_columns[i]
                     ),
                     secondary_y=True,
                 )

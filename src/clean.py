@@ -86,17 +86,6 @@ def clean(dir_path=DATA_PATH_RAW, inference_df=None):
         if target in inference_df.columns:
             del combined_df[target]
 
-        input_columns = pd.read_csv(INPUT_FEATURES_PATH, index_col=0)
-        input_columns = [feature for feature in input_columns["0"]]
-
-        for expected_col in input_columns:
-            if expected_col not in combined_df.columns:
-                raise ValueError(f"Variable {expected_col} not in input data.")
-
-        for actual_col in combined_df.columns:
-            if actual_col not in input_columns:
-                del combined_df[actual_col]
-
         return combined_df
     else:
         if classification:

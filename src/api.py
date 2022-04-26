@@ -164,10 +164,14 @@ class InferGUI(Resource):
                 original_target_values = inference_df[params["clean"]["target"]][::window_size]
                 if len(original_target_values.shape) > 1:
                     original_target_values = original_target_values[:, -1].reshape(-1)
+
+                original_target_values = original_target_values[-len(y_pred):]
                 x_orig = np.linspace(0, original_target_values.shape[0] - 1,
                         original_target_values.shape[0])
+
                 fig.add_trace(
-                    go.Scatter(x=x_orig, y=original_target_values, name="original"),
+                        go.Scatter(x=x_orig,
+                            y=original_target_values, name="original"),
                     secondary_y=False,
                 )
             except:

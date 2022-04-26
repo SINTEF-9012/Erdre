@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Train machine learning model.
+"""Train deep learning model to estimate power from breathing data.
 
 
 Author:
@@ -10,10 +10,6 @@ Created:
     2020-09-16  
 
 """
-
-
-
-# jkl
 import sys
 
 import matplotlib.pyplot as plt
