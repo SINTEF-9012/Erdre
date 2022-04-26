@@ -97,7 +97,7 @@ def featurize(dir_path="", inference=False, inference_df=None):
         # Save list of features used
         input_columns = [col for col in df.columns if col not in output_columns]
         pd.DataFrame(input_columns).to_csv(
-            INPUT_FEATURES_PATH, header=False, index=False
+            INPUT_FEATURES_PATH
         )
 
 

@@ -154,7 +154,6 @@ def scale(dir_path):
         joblib.dump(input_scaler, INPUT_SCALER_PATH)
         joblib.dump(output_scaler, OUTPUT_SCALER_PATH)
 
-
 if __name__ == "__main__":
 
     np.random.seed(2020)

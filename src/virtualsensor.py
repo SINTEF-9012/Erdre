@@ -157,9 +157,9 @@ class VirtualSensor:
 
         """
 
-        input_features = pd.read_csv(self.input_features_file)
+        input_features = pd.read_csv(self.input_features_file, index_col=0)
 
-        for feature in input_features:
+        for feature in input_features["0"]:
             assert (
                 feature in inference_df.columns
             ), f"Input data does not contain {feature}, which is required to run virtual sensor."

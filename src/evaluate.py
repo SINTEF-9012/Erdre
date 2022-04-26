@@ -252,7 +252,8 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
                             batch_size=params_train["batch_size"], kernel_size=params_train["kernel_size"])
             model.load_weights(model_filepath)
 
-            input_columns = pd.read_csv(INPUT_FEATURES_PATH).values.tolist()[0][1:]
+            input_columns = pd.read_csv(INPUT_FEATURES_PATH, index_col=0)
+            input_columns = [feature for feature in input_columns["0"]]
             X_test[300:305, :, :] = 3
             y_pred = model(X_test)
 
