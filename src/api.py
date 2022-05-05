@@ -255,4 +255,4 @@ if __name__ == "__main__":
     api.add_resource(CreateModel, "/create_model")
     api.add_resource(InferGUI, "/infer_gui")
     api.add_resource(Infer, "/infer")
-    app.run()
+    app.run(host="0.0.0.0")
