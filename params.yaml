@@ -1,59 +1,87 @@
-clean:
-  classification: false
-  combine_files: true
-  correlation_metric: pearson
-  input_max_correlation_threshold: 1.0
-  onehot_encode_target: false
-  percentage_zeros_threshold: 1.0
-  target: Spindle_Torque
-evaluate:
-  show_inputs: false
-featurize:
-  add_gradient: null
-  add_maximum: null
-  add_mean: null
-  add_min_max_range: null
-  add_minimum: null
-  add_peak_frequency: null
-  add_slope: null
-  add_slope_cos: null
-  add_slope_sin: null
-  add_standard_deviation: null
-  add_sum: null
-  add_variance: null
-  remove_features:
-  - Axis_X_Real_Position
-  - Axis_Y_Real_Position
-  - Axis_Z_Real_Position
-  rolling_window_size_max_min: 100
-  rolling_window_size_mean: 100
-  rolling_window_size_standard_deviation: 100
-  rolling_window_size_sum: 100
-  target_min_correlation_threshold: 0.0
-  use_all_engineered_features_on_all_variables: true
-  variables_to_include:
-  - Axis_X_Real_Position
-  - Axis_Y_Real_Position
-  - Axis_Z_Real_Position
 profile:
-  dataset: automotive_pn40
-scale:
-  input: minmax
-  output: null
-sequentialize:
-  future_predict: false
-  overlap: 0
-  shuffle_samples: false
-  target_size: 1
-  window_size: 10
+    dataset: cnc_milling_with_toolwear
+
+clean:
+    # target: fas_category
+    # target: Accel_Severity_Acc1_Range1
+    target: S1_OutputPower
+    classification: False
+    onehot_encode_target: False
+    combine_files: True
+    percentage_zeros_threshold: 1.0
+    correlation_metric: pearson
+    input_max_correlation_threshold: 1.0
+
+featurize:
+    # If empty, all input variables are used
+    variables_to_include:
+        # - Accel_Severity_Acc2_Range1
+        - X1_CommandPosition
+        - Y1_CommandPosition
+        - Z1_CommandPosition
+
+    # By setting this to True, the add_-options below are overrided.
+    use_all_engineered_features_on_all_variables: False
+
+    # List the variables below each add_* to add engineered feature
+    add_sum:
+        # - variable1
+    add_gradient:
+        # - variable1
+    add_mean:
+        # - variable1
+    add_maximum:
+        # - variable1
+    add_minimum:
+        # - variable1
+    add_min_max_range:
+        # - variable1
+    add_slope:
+        # - variable1
+    add_slope_sin:
+        # - variable1
+    add_slope_cos:
+        # - variable1
+    add_standard_deviation:
+        # - variable1
+    add_variance:
+        # - variable1
+    add_peak_frequency:
+        # - variable1
+    rolling_window_size_sum: 100
+    rolling_window_size_mean: 100
+    rolling_window_size_max_min: 100
+    rolling_window_size_standard_deviation: 100
+
+    # List features here to remove the raw variables after engineering features
+    # from them
+    remove_features:
+        # - variable1
+    target_min_correlation_threshold: 0.0
+
 split:
-  calibrate_split: 0.0
-  shuffle_files: false
-  train_split: 0.5
+    train_split: 0.7
+    shuffle_files: False
+    calibrate_split: 0.0
+
+scale:
+    input: minmax
+    output:
+
+sequentialize:
+    window_size: 10
+    overlap: 0
+    target_size: 1
+    shuffle_samples: True
+    future_predict: False
+
 train:
-  batch_size: 256
-  early_stopping: true
-  kernel_size: 6
-  learning_method: lstm
-  n_epochs: 200
-  patience: 100
+    learning_method: bcnn
+    n_epochs: 200
+    batch_size: 256
+    kernel_size: 6
+    early_stopping: True
+    patience: 100
+
+evaluate:
+    show_inputs: False

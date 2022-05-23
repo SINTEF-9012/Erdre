@@ -207,11 +207,18 @@ def train(filepath):
         model = nn.bcnn(data_size=X_train.shape[0],
                         window_size=X_train.shape[1],
                         feature_size=X_train.shape[2],
-                        batch_size=params["batch_size"],
                         kernel_size=params["kernel_size"],
+                        batch_size=params["batch_size"],
                         n_steps_out=target_size,
                         output_activation=output_activation,
                         classification=classification)
+        # model = nn.bcnn_edward(data_size=X_train.shape[0],
+        #                 window_size=X_train.shape[1],
+        #                 feature_size=X_train.shape[2],
+        #                 kernel_size=params["kernel_size"],
+        #                 n_steps_out=target_size,
+        #                 output_activation=output_activation,
+        #                 classification=classification)
     else:
         raise NotImplementedError(f"Learning method {learning_method} not implemented.")
 
