@@ -140,6 +140,7 @@ stages:
         - train.kernel_size
         - train.early_stopping
         - train.patience
+        - train.hyperparameter_tuning
 
     evaluate:
         cmd: python3 src/evaluate.py assets/models/model.h5 assets/data/combined/train.npz assets/data/combined/test.npz assets/data/combined/calibrate.npz

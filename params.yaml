@@ -1,13 +1,15 @@
 profile:
-    dataset: cnc_milling_with_toolwear
+    dataset: broaching_with_toolwear
+    # dataset: cnc_milling_with_toolwear
 
 clean:
     # target: fas_category
     # target: Accel_Severity_Acc1_Range1
-    target: S1_OutputPower
+    # target: S1_OutputPower
+    target: tool_wear
     classification: False
     onehot_encode_target: False
-    combine_files: True
+    combine_files: False
     percentage_zeros_threshold: 1.0
     correlation_metric: pearson
     input_max_correlation_threshold: 1.0
@@ -15,13 +17,19 @@ clean:
 featurize:
     # If empty, all input variables are used
     variables_to_include:
+        - acc1_x
+        - acc1_y
+        - acc1_z
+        - acc2_x
+        - acc2_y
+        - acc2_z
         # - Accel_Severity_Acc2_Range1
-        - X1_CommandPosition
-        - Y1_CommandPosition
-        - Z1_CommandPosition
+        # - X1_CommandPosition
+        # - Y1_CommandPosition
+        # - Z1_CommandPosition
 
     # By setting this to True, the add_-options below are overrided.
-    use_all_engineered_features_on_all_variables: False
+    use_all_engineered_features_on_all_variables: True
 
     # List the variables below each add_* to add engineered feature
     add_sum:
@@ -48,10 +56,10 @@ featurize:
         # - variable1
     add_peak_frequency:
         # - variable1
-    rolling_window_size_sum: 100
-    rolling_window_size_mean: 100
-    rolling_window_size_max_min: 100
-    rolling_window_size_standard_deviation: 100
+    rolling_window_size_sum: 128000
+    rolling_window_size_mean: 128000
+    rolling_window_size_max_min: 128000
+    rolling_window_size_standard_deviation: 128000
 
     # List features here to remove the raw variables after engineering features
     # from them
@@ -61,7 +69,7 @@ featurize:
 
 split:
     train_split: 0.7
-    shuffle_files: False
+    shuffle_files: True
     calibrate_split: 0.0
 
 scale:
@@ -69,19 +77,20 @@ scale:
     output:
 
 sequentialize:
-    window_size: 10
+    window_size: 1
     overlap: 0
     target_size: 1
     shuffle_samples: True
     future_predict: False
 
 train:
-    learning_method: bcnn
-    n_epochs: 200
+    learning_method: xgboost
+    n_epochs: 1000
     batch_size: 256
-    kernel_size: 6
+    kernel_size: 128
     early_stopping: True
     patience: 100
+    hyperparameter_tuning: False
 
 evaluate:
     show_inputs: False

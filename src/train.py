@@ -144,11 +144,33 @@ def train(filepath):
             model = RandomForestClassifier()
         else:
             model = RandomForestRegressor(n_estimators=1000)
+        if params["hyperparameter_tuning"]:
+            model = RandomizedSearchCV(
+                model,
+                {
+                    "max_depth": [2, 4, 6, 8],
+                    "n_estimators": [50, 100, 200, 400, 800, 1000],
+                    "min_samples_split": [2, 4, 6, 8, 10],
+                    "min_samples_leaf": [1, 3, 5],
+                },
+                verbose=2,
+            )
     elif learning_method == "kneighbors" or learning_method == "kn":
         if classification:
             model = KNeighborsClassifier()
         else:
             model = KNeighborsRegressor()
+        if params["hyperparameter_tuning"]:
+            model = RandomizedSearchCV(
+                model,
+                {
+                    "n_neighbors": [2, 4, 5, 6, 10, 15, 20, 30],
+                    "weights": ["uniform", "distance"],
+                    "leaf_size": [10, 30, 50, 80, 100],
+                    "algorithm": ["ball_tree", "kd_tree", "brute"]
+                },
+                verbose=2,
+            )
     elif learning_method == "gradientboosting" or learning_method == "gb":
         if classification:
             model = GradientBoostingClassifier()
@@ -159,6 +181,16 @@ def train(filepath):
             model = xgb.XGBClassifier()
         else:
             model = xgb.XGBRegressor()
+        if params["hyperparameter_tuning"]:
+            model = RandomizedSearchCV(
+                model,
+                {
+                    "max_depth": [2, 4, 6, 8],
+                    "n_estimators": [50, 100, 200, 400, 800, 1000],
+                    "learning_rate": [0.3, 0.1, 0.001, 0.0001],
+                },
+                verbose=2,
+            )
     elif learning_method == "linearregression":
         if classification:
             raise ValueError(
@@ -197,6 +229,15 @@ def train(filepath):
             model = SVC()
         else:
             model = SVR()
+        if params["hyperparameter_tuning"]:
+            model = RandomizedSearchCV(
+                model,
+                {
+                    "kernel": ["linear", "poly", "rbf"],
+                    "degree": [1, 3, 5],
+                    "max_iter": [1, 5, 10],
+                }
+            )
     elif learning_method == 'brnn':
         model = nn.brnn(data_size=X_train.shape[0],
                         window_size=X_train.shape[1],
