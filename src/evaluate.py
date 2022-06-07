@@ -351,6 +351,26 @@ def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
         with open(METRICS_FILE_PATH, "w") as f:
             json.dump(dict(mse=mse, rmse=rmse, mape=mape, r2=r2), f)
 
+    # Print feature importances of the ML algorithm supports it.
+    try:
+        feature_importances = model.feature_importances_
+        imp = list()
+        for i, f in enumerate(feature_importances):
+            imp.append((f,i))
+
+        sorted_feature_importances = sorted(imp)[::-1]
+        input_columns = pd.read_csv(INPUT_FEATURES_PATH, header=None)
+
+        print("-------------------------")
+        print("Feature importances:")
+
+        for i in range(len(sorted_feature_importances)):
+            print(f"Feature: {input_columns.iloc[i,0]}. Importance: {feature_importances[i]:.2f}")
+
+        print("-------------------------")
+    except:
+        pass
+
     save_predictions(pd.DataFrame(y_pred))
 
 
