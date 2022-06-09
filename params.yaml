@@ -1,13 +1,15 @@
 profile:
-    dataset: broaching_with_toolwear
+    # dataset: broaching_with_toolwear
+    dataset: mammographic
     # dataset: cnc_milling_with_toolwear
 
 clean:
     # target: fas_category
     # target: Accel_Severity_Acc1_Range1
     # target: S1_OutputPower
-    target: tool_wear
-    classification: False
+    # target: tool_wear
+    target: label
+    classification: True
     onehot_encode_target: False
     combine_files: False
     percentage_zeros_threshold: 1.0
@@ -17,19 +19,19 @@ clean:
 featurize:
     # If empty, all input variables are used
     variables_to_include:
-        - acc1_x
-        - acc1_y
-        - acc1_z
-        - acc2_x
-        - acc2_y
-        - acc2_z
+        # - acc1_x
+        # - acc1_y
+        # - acc1_z
+        # - acc2_x
+        # - acc2_y
+        # - acc2_z
         # - Accel_Severity_Acc2_Range1
         # - X1_CommandPosition
         # - Y1_CommandPosition
         # - Z1_CommandPosition
 
     # By setting this to True, the add_-options below are overrided.
-    use_all_engineered_features_on_all_variables: True
+    use_all_engineered_features_on_all_variables: False
 
     # List the variables below each add_* to add engineered feature
     add_sum:
@@ -69,7 +71,7 @@ featurize:
 
 split:
     train_split: 0.7
-    shuffle_files: True
+    shuffle_files: False
     calibrate_split: 0.0
 
 scale:
@@ -84,13 +86,13 @@ sequentialize:
     future_predict: False
 
 train:
-    learning_method: xgboost
+    learning_method: dnn_simple
     n_epochs: 1000
     batch_size: 256
     kernel_size: 128
     early_stopping: True
     patience: 100
-    hyperparameter_tuning: False
+    hyperparameter_tuning: True
 
 evaluate:
     show_inputs: False

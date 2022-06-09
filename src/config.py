@@ -16,7 +16,7 @@ from pathlib import Path
 # PARAMETERS
 
 # Deep learning methods
-DL_METHODS = ["dnn", "dnn_simple", "cnn", "lstm", "lstm2", "bcnn", "brnn"]
+DL_METHODS = ["dnn", "dnn_simple", "cnn", "lstm", "lstm2", "bcnn", "brnn", "gru", "rnn"]
 
 # Non-deep learning methods
 NON_DL_METHODS = ["dt", "rf", "xgboost", "lda", "qda", "svm",

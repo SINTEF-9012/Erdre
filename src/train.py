@@ -10,6 +10,8 @@ Created:
     2020-09-16  
 
 """
+import os
+import shutil
 import sys
 
 import matplotlib.pyplot as plt
@@ -18,6 +20,8 @@ import pandas as pd
 import xgboost as xgb
 import yaml
 from joblib import dump
+from keras_tuner import HyperParameters
+from keras_tuner.tuners import BayesianOptimization, Hyperband, RandomSearch
 from sklearn.discriminant_analysis import (
     LinearDiscriminantAnalysis,
     QuadraticDiscriminantAnalysis,
@@ -35,6 +39,7 @@ from tensorflow.keras.utils import plot_model
 import neural_networks as nn
 from config import (
     DATA_PATH,
+    DL_METHODS,
     MODELS_FILE_PATH,
     MODELS_PATH,
     NON_DL_METHODS,
@@ -83,7 +88,6 @@ def train(filepath):
     target_size = y_train.shape[-1]
 
     if classification:
-        # if len(np.unique(y_train, axis=-1)) > 2:
         if onehot_encode_target:
             output_activation = "softmax"
             loss = "categorical_crossentropy"
@@ -100,10 +104,45 @@ def train(filepath):
         metrics = "mse"
         monitor_metric = "loss"
 
-
-
     # Build model
-    if learning_method == "cnn":
+    if learning_method in DL_METHODS and params["hyperparameter_tuning"]:
+
+        # In order to perform model tuning, any old model_tuning results must
+        # be deleted.
+        if os.path.exists("model_tuning"):
+            shutil.rmtree("model_tuning")
+
+        if learning_method == "lstm":
+            hypermodel = nn.LSTMHyperModel(hist_size, n_features, loss=loss,
+                    metrics=metrics)
+        elif learning_method == "cnn":
+            hypermodel = nn.CNNHyperModel(hist_size, n_features, loss=loss,
+                    metrics=metrics)
+        else:
+            hypermodel = nn.SequentialHyperModel(n_features, loss=loss,
+                    metrics=metrics)
+
+        hypermodel.build(HyperParameters())
+        tuner = BayesianOptimization(
+            hypermodel,
+            objective="val_loss",
+            directory="model_tuning",
+            # project_name="Erdre",
+        )
+        tuner.search_space_summary()
+        tuner.search(
+            X_train,
+            y_train,
+            epochs=200,
+            batch_size=params["batch_size"],
+            validation_split=0.2,
+        )
+        tuner.results_summary()
+
+        model = tuner.get_best_models()[0]
+
+
+    elif learning_method == "cnn":
         hist_size = X_train.shape[-2]
         model = nn.cnn(
             hist_size,
@@ -143,7 +182,7 @@ def train(filepath):
         if classification:
             model = RandomForestClassifier()
         else:
-            model = RandomForestRegressor(n_estimators=1000)
+            model = RandomForestRegressor()
         if params["hyperparameter_tuning"]:
             model = RandomizedSearchCV(
                 model,

@@ -10,9 +10,11 @@ Date:
 
 """
 import numpy as np
+from keras_tuner import HyperModel
 import tensorflow as tf
 import tensorflow_probability as tfp
 from tensorflow.keras import layers, models, optimizers
+from tensorflow.random import set_seed
 
 tfk = tf.keras
 tfkl = tf.keras.layers
@@ -348,6 +350,68 @@ def lstm2(
 
     return model
 
+def rnn(
+    hist_size,
+    n_features,
+    n_steps_out=1,
+    output_activation="linear",
+    loss="mse",
+    metrics="mse",
+):
+    """Define a LSTM model architecture using Keras.
+
+    Args:
+        hist_size (int): Number of time steps to include in each sample, i.e.
+            how much history should be matched with a given target.
+        n_features (int): Number of features for each time step, in the input
+            data.
+
+    Returns:
+        model (Keras model): Model to be trained.
+
+    """
+
+    model = models.Sequential()
+
+    model.add(layers.SimpleRNN(8, input_shape=(hist_size, n_features)))
+    model.add(layers.Dropout(0.2))
+
+    model.add(layers.Dense(n_steps_out, activation=output_activation))
+    model.compile(optimizer="adam", loss=loss, metrics=metrics)
+
+    return model
+
+
+def gru(
+    hist_size,
+    n_features,
+    n_steps_out=1,
+    output_activation="linear",
+    loss="mse",
+    metrics="mse",
+):
+    """Define a LSTM model architecture using Keras.
+
+    Args:
+        hist_size (int): Number of time steps to include in each sample, i.e.
+            how much history should be matched with a given target.
+        n_features (int): Number of features for each time step, in the input
+            data.
+
+    Returns:
+        model (Keras model): Model to be trained.
+
+    """
+
+    model = models.Sequential()
+
+    model.add(layers.GRU(8, input_shape=(hist_size, n_features)))
+    model.add(layers.Dropout(0.2))
+
+    model.add(layers.Dense(n_steps_out, activation=output_activation))
+    model.compile(optimizer="adam", loss=loss, metrics=metrics)
+
+    return model
 
 def cnndnn(input_x, input_y, n_forecast_hours, n_steps_out=1):
     """Define a model architecture that combines CNN and DNN.
@@ -737,3 +801,257 @@ def bcnn_edward(
     )  # keras.metrics.RootMeanSquaredError()
 
     return model
+
+
+class SequentialHyperModel(HyperModel):
+    def __init__(self, input_x, input_y=0, n_steps_out=1, loss="mse",
+            metrics="mse"):
+        """Define size of model.
+
+        Args:
+            input_x (int): Number of time steps to include in each sample, i.e. how
+                much history is matched with a given target.
+            input_y (int): Number of features for each time step in the input data.
+            n_steps_out (int): Number of output steps.
+
+        """
+
+        self.input_x = input_x
+        self.input_y = input_y
+        self.n_steps_out = n_steps_out
+        self.loss = loss
+        self.metrics = metrics
+
+    def build(self, hp, seed=2020):
+        """Build model.
+
+        Args:
+            hp: HyperModel instance.
+            seed (int): Seed for random initialization of weights.
+
+        Returns:
+            model (keras model): Model to be trained.
+
+        """
+
+        print(self.loss)
+
+        set_seed(seed)
+
+        model = models.Sequential()
+
+        model.add(
+            layers.Dense(
+                units=hp.Int(
+                    name="units", min_value=2, max_value=16, step=2, default=8
+                ),
+                input_dim=self.input_x,
+                activation="relu",
+                name="input_layer",
+            )
+        )
+
+        for i in range(hp.Int("num_dense_layers", min_value=0, max_value=4, default=1)):
+            model.add(
+                layers.Dense(
+                    units=hp.Int(
+                        "units_" + str(i),
+                        min_value=2,
+                        max_value=16,
+                        step=2,
+                        default=8,
+                    ),
+                    activation="relu",
+                    name=f"dense_{i}",
+                )
+            )
+
+        model.add(
+            layers.Dense(self.n_steps_out, activation="linear", name="output_layer")
+        )
+        model.compile(optimizer="adam", loss=self.loss, metrics=self.metrics)
+
+        return model
+
+
+class LSTMHyperModel(HyperModel):
+    def __init__(self, input_x, input_y=0, n_steps_out=1, loss="mse",
+            metrics="mse"):
+        """Define size of model.
+
+        Args:
+            input_x (int): Number of time steps to include in each sample, i.e. how
+                much history is matched with a given target.
+            input_y (int): Number of features for each time step in the input data.
+            n_steps_out (int): Number of output steps.
+
+        """
+
+        self.input_x = input_x
+        self.input_y = input_y
+        self.n_steps_out = n_steps_out
+        self.loss = loss
+        self.metrics = metrics
+
+    def build(self, hp, seed=2020, loss="mse", metrics="mse"):
+        """Build model.
+
+        Args:
+            hp: HyperModel instance.
+            seed (int): Seed for random initialization of weights.
+
+        Returns:
+            model (keras model): Model to be trained.
+
+        """
+
+        set_seed(seed)
+
+        model = models.Sequential()
+
+        model.add(
+            layers.LSTM(
+                hp.Int(
+                    name="lstm_units", min_value=4, max_value=256, step=8, default=128
+                ),
+                input_shape=(self.input_x, self.input_y),
+            )
+        )  # , return_sequences=True))
+
+        add_dropout = hp.Boolean(name="dropout", default=False)
+
+        if add_dropout:
+            model.add(
+                layers.Dropout(
+                    hp.Float("dropout_rate", min_value=0.1, max_value=0.9, step=0.3)
+                )
+            )
+
+        for i in range(hp.Int("num_dense_layers", min_value=1, max_value=4, default=2)):
+            model.add(
+                layers.Dense(
+                    # units=64,
+                    units=hp.Int(
+                        "units_" + str(i),
+                        min_value=16,
+                        max_value=512,
+                        step=16,
+                        default=64,
+                    ),
+                    activation="relu",
+                    name=f"dense_{i}",
+                )
+            )
+
+        model.add(
+            layers.Dense(self.n_steps_out, activation="linear", name="output_layer")
+        )
+        model.compile(optimizer="adam", loss=self.loss, metrics=self.metrics)
+
+        return model
+
+
+class CNNHyperModel(HyperModel):
+    def __init__(self, input_x, input_y, n_steps_out=1, loss="mse",
+            metrics="mse"):
+        """Define size of model.
+
+        Args:
+            input_x (int): Number of time steps to include in each sample, i.e. how
+                much history is matched with a given target.
+            input_y (int): Number of features for each time step in the input data.
+            n_steps_out (int): Number of output steps.
+
+        """
+
+        self.input_x = input_x
+        self.input_y = input_y
+        self.n_steps_out = n_steps_out
+        self.loss = loss
+        self.metrics = metrics
+
+    def build(self, hp, seed=2020, loss="mse", metrics="mse"):
+        """Build model.
+
+        Args:
+            hp: HyperModel instance.
+            seed (int): Seed for random initialization of weights.
+
+        Returns:
+            model (keras model): Model to be trained.
+
+        """
+
+        set_seed(seed)
+
+        model = models.Sequential()
+
+        model.add(
+            layers.Conv1D(
+                input_shape=(self.input_x, self.input_y),
+                # filters=64,
+                filters=hp.Int(
+                    "filters", min_value=8, max_value=256, step=32, default=64
+                ),
+                # kernel_size=hp.Int(
+                #     "kernel_size",
+                #     min_value=2,
+                #     max_value=6,
+                #     step=2,
+                #     default=4),
+                kernel_size=2,
+                activation="relu",
+                name="input_layer",
+                padding="same",
+            )
+        )
+
+        for i in range(hp.Int("num_conv1d_layers", 1, 3, default=1)):
+            model.add(
+                layers.Conv1D(
+                    # filters=64,
+                    filters=hp.Int(
+                        "filters_" + str(i),
+                        min_value=8,
+                        max_value=256,
+                        step=32,
+                        default=64,
+                    ),
+                    # kernel_size=hp.Int(
+                    #     "kernel_size_" + str(i),
+                    #     min_value=2,
+                    #     max_value=6,
+                    #     step=2,
+                    #     default=4),
+                    kernel_size=2,
+                    activation="relu",
+                    name=f"conv1d_{i}",
+                )
+            )
+
+        # model.add(layers.MaxPooling1D(pool_size=2, name="pool_1"))
+        # model.add(layers.Dropout(rate=0.2))
+        model.add(layers.Flatten(name="flatten"))
+
+        for i in range(hp.Int("num_dense_layers", min_value=1, max_value=8, default=2)):
+            model.add(
+                layers.Dense(
+                    # units=64,
+                    units=hp.Int(
+                        "units_" + str(i),
+                        min_value=16,
+                        max_value=1024,
+                        step=16,
+                        default=64,
+                    ),
+                    activation="relu",
+                    name=f"dense_{i}",
+                )
+            )
+
+        model.add(
+            layers.Dense(self.n_steps_out, activation="linear", name="output_layer")
+        )
+        model.compile(optimizer="adam", loss=self.loss, metrics=self.metrics)
+
+        return model
