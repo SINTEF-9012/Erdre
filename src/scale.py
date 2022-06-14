@@ -23,7 +23,6 @@ import yaml
 from sklearn.preprocessing import MinMaxScaler, RobustScaler, StandardScaler
 
 from config import (
-    DATA_PATH,
     DATA_SCALED_PATH,
     INPUT_SCALER_PATH,
     OUTPUT_FEATURES_PATH,
