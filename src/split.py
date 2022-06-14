@@ -30,7 +30,9 @@ def split(dir_path):
 
     """
 
-    params = yaml.safe_load(open("params.yaml"))["split"]
+    with open("params.yaml", "r", encoding="UTF-8") as infile:
+        params = yaml.safe_load(infile)["split"]
+
     shuffle_files = params["shuffle_files"]
 
     DATA_SPLIT_PATH.mkdir(parents=True, exist_ok=True)
