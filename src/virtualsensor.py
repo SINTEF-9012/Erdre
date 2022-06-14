@@ -54,8 +54,7 @@ class VirtualSensor:
         """
 
         if type(params_file) == dict:
-            yaml.dump(params_file, open("params.yaml", "w"),
-                    allow_unicode=True)
+            yaml.dump(params_file, open("params.yaml", "w"), allow_unicode=True)
             self.params_file = "params.yaml"
         else:
             self.params_file = params_file
@@ -110,7 +109,6 @@ class VirtualSensor:
         output_method = params["scale"]["output"]
         window_size = params["sequentialize"]["window_size"]
         overlap = params["sequentialize"]["overlap"]
-
 
         df = clean(inference_df=inference_df)
         df = featurize(inference=True, inference_df=df)

@@ -18,6 +18,7 @@ from codecarbon import track_emissions
 
 COUNTRY = "NOR"
 
+
 @track_emissions(offline=True, country_iso_code=COUNTRY, project_name="Erdre")
 def run_erdre():
     subprocess.run(["dvc", "repro", "--force"], check=True)
@@ -85,6 +86,7 @@ def run_evaluate_stage():
         check=True,
     )
 
+
 def run_all_stages():
 
     run_profile_stage()
@@ -117,7 +119,6 @@ def run_pipeline(stage: str = "all", use_dvc: bool = True, force: bool = False):
 
     if force:
         command.append("--force")
-
 
     # Function for running command is wrapped to be able to specify project
     # name based on which stage is being run

@@ -26,8 +26,18 @@ from sklearn.discriminant_analysis import (
     LinearDiscriminantAnalysis,
     QuadraticDiscriminantAnalysis,
 )
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, GradientBoostingClassifier, GradientBoostingRegressor
-from sklearn.linear_model import LinearRegression, ridge_regression, SGDRegressor, SGDClassifier
+from sklearn.ensemble import (
+    GradientBoostingClassifier,
+    GradientBoostingRegressor,
+    RandomForestClassifier,
+    RandomForestRegressor,
+)
+from sklearn.linear_model import (
+    LinearRegression,
+    SGDClassifier,
+    SGDRegressor,
+    ridge_regression,
+)
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, roc_auc_score
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
@@ -113,14 +123,15 @@ def train(filepath):
             shutil.rmtree("model_tuning")
 
         if learning_method == "lstm":
-            hypermodel = nn.LSTMHyperModel(hist_size, n_features, loss=loss,
-                    metrics=metrics)
+            hypermodel = nn.LSTMHyperModel(
+                hist_size, n_features, loss=loss, metrics=metrics
+            )
         elif learning_method == "cnn":
-            hypermodel = nn.CNNHyperModel(hist_size, n_features, loss=loss,
-                    metrics=metrics)
+            hypermodel = nn.CNNHyperModel(
+                hist_size, n_features, loss=loss, metrics=metrics
+            )
         else:
-            hypermodel = nn.SequentialHyperModel(n_features, loss=loss,
-                    metrics=metrics)
+            hypermodel = nn.SequentialHyperModel(n_features, loss=loss, metrics=metrics)
 
         hypermodel.build(HyperParameters())
         tuner = BayesianOptimization(
@@ -141,7 +152,6 @@ def train(filepath):
 
         model = tuner.get_best_models()[0]
 
-
     elif learning_method == "cnn":
         hist_size = X_train.shape[-2]
         model = nn.cnn(
@@ -161,7 +171,7 @@ def train(filepath):
             output_activation=output_activation,
             loss=loss,
             metrics=metrics,
-            activation_function="relu"
+            activation_function="relu",
         )
     elif learning_method.startswith("lstm"):
         hist_size = X_train.shape[-2]
@@ -207,7 +217,7 @@ def train(filepath):
                     "n_neighbors": [2, 4, 5, 6, 10, 15, 20, 30],
                     "weights": ["uniform", "distance"],
                     "leaf_size": [10, 30, 50, 80, 100],
-                    "algorithm": ["ball_tree", "kd_tree", "brute"]
+                    "algorithm": ["ball_tree", "kd_tree", "brute"],
                 },
                 verbose=2,
             )
@@ -276,23 +286,27 @@ def train(filepath):
                     "kernel": ["linear", "poly", "rbf"],
                     "degree": [1, 3, 5],
                     "max_iter": [1, 5, 10],
-                }
+                },
             )
-    elif learning_method == 'brnn':
-        model = nn.brnn(data_size=X_train.shape[0],
-                        window_size=X_train.shape[1],
-                        feature_size=X_train.shape[2],
-                        batch_size=params["batch_size"],
-                        hidden_size=10)  # TODO: Make this into a parameter
-    elif learning_method == 'bcnn':
-        model = nn.bcnn(data_size=X_train.shape[0],
-                        window_size=X_train.shape[1],
-                        feature_size=X_train.shape[2],
-                        kernel_size=params["kernel_size"],
-                        batch_size=params["batch_size"],
-                        n_steps_out=target_size,
-                        output_activation=output_activation,
-                        classification=classification)
+    elif learning_method == "brnn":
+        model = nn.brnn(
+            data_size=X_train.shape[0],
+            window_size=X_train.shape[1],
+            feature_size=X_train.shape[2],
+            batch_size=params["batch_size"],
+            hidden_size=10,
+        )  # TODO: Make this into a parameter
+    elif learning_method == "bcnn":
+        model = nn.bcnn(
+            data_size=X_train.shape[0],
+            window_size=X_train.shape[1],
+            feature_size=X_train.shape[2],
+            kernel_size=params["kernel_size"],
+            batch_size=params["batch_size"],
+            n_steps_out=target_size,
+            output_activation=output_activation,
+            classification=classification,
+        )
         # model = nn.bcnn_edward(data_size=X_train.shape[0],
         #                 window_size=X_train.shape[1],
         #                 feature_size=X_train.shape[2],
@@ -328,12 +342,14 @@ def train(filepath):
             )
 
         early_stopping = EarlyStopping(
-            monitor="val_" + monitor_metric, patience=patience, verbose=4,
-            restore_best_weights=True
+            monitor="val_" + monitor_metric,
+            patience=patience,
+            verbose=4,
+            restore_best_weights=True,
         )
 
         model_checkpoint = ModelCheckpoint(
-            MODELS_FILE_PATH, monitor="val_" + monitor_metric #, save_best_only=True
+            MODELS_FILE_PATH, monitor="val_" + monitor_metric  # , save_best_only=True
         )
 
         if use_early_stopping:

@@ -1,15 +1,9 @@
 profile:
-    # dataset: broaching_with_toolwear
-    dataset: mammographic
-    # dataset: cnc_milling_with_toolwear
+    dataset: name_of_dataset
 
 clean:
-    # target: fas_category
-    # target: Accel_Severity_Acc1_Range1
-    # target: S1_OutputPower
-    # target: tool_wear
-    target: label
-    classification: True
+    target: name_of_target_variable
+    classification: False
     onehot_encode_target: False
     combine_files: False
     percentage_zeros_threshold: 1.0
@@ -19,16 +13,8 @@ clean:
 featurize:
     # If empty, all input variables are used
     variables_to_include:
-        # - acc1_x
-        # - acc1_y
-        # - acc1_z
-        # - acc2_x
-        # - acc2_y
-        # - acc2_z
-        # - Accel_Severity_Acc2_Range1
-        # - X1_CommandPosition
-        # - Y1_CommandPosition
-        # - Z1_CommandPosition
+        # - variable1
+        # - variable2
 
     # By setting this to True, the add_-options below are overrided.
     use_all_engineered_features_on_all_variables: False
@@ -58,10 +44,10 @@ featurize:
         # - variable1
     add_peak_frequency:
         # - variable1
-    rolling_window_size_sum: 128000
-    rolling_window_size_mean: 128000
-    rolling_window_size_max_min: 128000
-    rolling_window_size_standard_deviation: 128000
+    rolling_window_size_sum: 10
+    rolling_window_size_mean: 10
+    rolling_window_size_max_min: 10
+    rolling_window_size_standard_deviation: 10
 
     # List features here to remove the raw variables after engineering features
     # from them
@@ -70,7 +56,7 @@ featurize:
     target_min_correlation_threshold: 0.0
 
 split:
-    train_split: 0.7
+    train_split: 0.5
     shuffle_files: False
     calibrate_split: 0.0
 
@@ -79,20 +65,20 @@ scale:
     output:
 
 sequentialize:
-    window_size: 1
+    window_size: 5
     overlap: 0
     target_size: 1
-    shuffle_samples: True
+    shuffle_samples: False
     future_predict: False
 
 train:
-    learning_method: dnn_simple
-    n_epochs: 1000
+    learning_method: dnn
+    n_epochs: 10
     batch_size: 256
-    kernel_size: 128
+    kernel_size: 5
     early_stopping: True
-    patience: 100
-    hyperparameter_tuning: True
+    patience: 20
+    hyperparameter_tuning: False
 
 evaluate:
-    show_inputs: False
+    show_inputs: True

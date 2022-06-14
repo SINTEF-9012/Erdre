@@ -9,10 +9,10 @@ Created:
     2021-11-10 Wednesday 11:22:39
 
 """
-import os
 import json
-import time
+import os
 import subprocess
+import time
 import urllib.request
 import uuid
 from pathlib import Path
@@ -35,9 +35,11 @@ app = flask.Flask(__name__)
 api = Api(app)
 app.config["DEBUG"] = True
 
+
 @app.route("/")
 def home():
     return flask.render_template("index.html")
+
 
 @app.route("/create_model_form")
 def create_model_form():
@@ -45,25 +47,27 @@ def create_model_form():
     models = get_models()
 
     return flask.render_template(
-            "create_model_form.html",
-            length=len(models),
-            models=models
+        "create_model_form.html", length=len(models), models=models
     )
+
 
 @app.route("/inference")
 def inference():
 
     models = get_models()
 
-    return flask.render_template( "inference.html", models=models)
+    return flask.render_template("inference.html", models=models)
+
 
 @app.route("/result")
 def result(plot_div):
     return flask.render_template("result.html", plot=flask.Markup(plot_div))
 
+
 @app.route("/prediction")
 def prediction():
     return flask.render_template("prediction.html")
+
 
 def get_models():
 
@@ -93,9 +97,11 @@ class CreateModel(Resource):
         except:
             params = yaml.safe_load(open("params_default.yaml"))
             params["profile"]["dataset"] = flask.request.form["dataset"]
-            params["clean"]["target"]= flask.request.form["target"]
-            params["train"]["learning_method"]= flask.request.form["learning_method"]
-            params["split"]["train_split"] = float(flask.request.form["train_split"]) / 10
+            params["clean"]["target"] = flask.request.form["target"]
+            params["train"]["learning_method"] = flask.request.form["learning_method"]
+            params["split"]["train_split"] = (
+                float(flask.request.form["train_split"]) / 10
+            )
             print(params)
 
         # Create dict containing all metadata about models
@@ -158,20 +164,23 @@ class InferGUI(Resource):
             if len(y_pred.shape) > 1:
                 y_pred = y_pred[:, -1].reshape(-1)
 
-
             # If the input data contains the target value, show it in the plot
             try:
-                original_target_values = inference_df[params["clean"]["target"]][::window_size]
+                original_target_values = inference_df[params["clean"]["target"]][
+                    ::window_size
+                ]
                 if len(original_target_values.shape) > 1:
                     original_target_values = original_target_values[:, -1].reshape(-1)
 
-                original_target_values = original_target_values[-len(y_pred):]
-                x_orig = np.linspace(0, original_target_values.shape[0] - 1,
-                        original_target_values.shape[0])
+                original_target_values = original_target_values[-len(y_pred) :]
+                x_orig = np.linspace(
+                    0,
+                    original_target_values.shape[0] - 1,
+                    original_target_values.shape[0],
+                )
 
                 fig.add_trace(
-                        go.Scatter(x=x_orig,
-                            y=original_target_values, name="original"),
+                    go.Scatter(x=x_orig, y=original_target_values, name="original"),
                     secondary_y=False,
                 )
             except:
@@ -197,12 +206,10 @@ class InferGUI(Resource):
             # Put output data into JSON schema
             output = {}
             output["param"] = {"modeluid": model_id}
-            output["scalar"] = {
-                    "headers": ["date", target],
-                    "data": output_data
-            }
+            output["scalar"] = {"headers": ["date", target], "data": output_data}
 
             return output
+
 
 class Infer(Resource):
     def get(self):
@@ -242,10 +249,7 @@ class Infer(Resource):
         # Put output data into JSON schema
         output = {}
         output["param"] = {"modeluid": model_id}
-        output["scalar"] = {
-                "headers": ["date", target],
-                "data": output_data
-        }
+        output["scalar"] = {"headers": ["date", target], "data": output_data}
 
         return output
 

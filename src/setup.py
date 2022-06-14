@@ -14,12 +14,15 @@ To compile, run:
 
 """
 
-import numpy
 from distutils.core import setup
+
+import numpy
 from Cython.Build import cythonize
 
-setup(name="Cython modules",
-        ext_modules=cythonize("src/cutils.pyx", 
-            compiler_directives={"language_level": "3"}),
-        include_dirs=[numpy.get_include()])
-
+setup(
+    name="Cython modules",
+    ext_modules=cythonize(
+        "src/cutils.pyx", compiler_directives={"language_level": "3"}
+    ),
+    include_dirs=[numpy.get_include()],
+)

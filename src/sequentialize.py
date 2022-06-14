@@ -22,8 +22,8 @@ import yaml
 from config import (
     DATA_PATH,
     DATA_SEQUENTIALIZED_PATH,
-    NON_SEQUENCE_LEARNING_METHODS,
     NON_DL_METHODS,
+    NON_SEQUENCE_LEARNING_METHODS,
     OUTPUT_FEATURES_PATH,
 )
 from preprocess_utils import find_files, flatten_sequentialized, split_sequences
@@ -90,7 +90,6 @@ def sequentialize(dir_path):
             X=X,
             y=y,
         )
-
 
 
 if __name__ == "__main__":

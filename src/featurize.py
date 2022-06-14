@@ -58,13 +58,7 @@ def featurize(dir_path="", inference=False, inference_df=None):
             pd.read_csv(OUTPUT_FEATURES_PATH, index_col=0, dtype=str)
         ).reshape(-1)
 
-        df = _featurize(
-            inference_df,
-            features,
-            remove_features,
-            params,
-            output_columns
-        )
+        df = _featurize(inference_df, features, remove_features, params, output_columns)
 
         input_columns = pd.read_csv(INPUT_FEATURES_PATH, index_col=0)
         input_columns = [feature for feature in input_columns["0"]]
@@ -107,9 +101,7 @@ def featurize(dir_path="", inference=False, inference_df=None):
 
         # Save list of features used
         input_columns = [col for col in df.columns if col not in output_columns]
-        pd.DataFrame(input_columns).to_csv(
-            INPUT_FEATURES_PATH
-        )
+        pd.DataFrame(input_columns).to_csv(INPUT_FEATURES_PATH)
 
 
 def _featurize(df, features, remove_features, params, output_columns):
@@ -130,8 +122,7 @@ def _featurize(df, features, remove_features, params, output_columns):
         # should not be a part of the input.
         if (col not in features) and (col not in output_columns):
             del df[col]
-            
-        
+
         # Remove feature if it is non-numeric
         elif not is_numeric_dtype(df[col]):
             print(f"Removing feature {col} because it is non-numeric.")
@@ -142,9 +133,7 @@ def _featurize(df, features, remove_features, params, output_columns):
             print(f"Converting feature {col} from boolean to integer.")
             df[col] = df[col].replace({True: 1, False: 0})
 
-    df = compute_rolling_features(
-        df, params, ignore_columns=output_columns
-    )
+    df = compute_rolling_features(df, params, ignore_columns=output_columns)
 
     if type(remove_features) is list:
         for col in remove_features:
@@ -187,9 +176,9 @@ def compute_rolling_features(df, params, ignore_columns=None):
 
     if type(params["featurize"]["add_sum"]) == list:
         for var in params["featurize"]["add_sum"]:
-            df[f"{var}_sum"] = df[var].rolling(
-                    params["featurize"]["rolling_window_size_sum"]
-            ).sum()
+            df[f"{var}_sum"] = (
+                df[var].rolling(params["featurize"]["rolling_window_size_sum"]).sum()
+            )
 
     if type(params["featurize"]["add_gradient"]) == list:
         for var in params["featurize"]["add_gradient"]:
@@ -199,20 +188,38 @@ def compute_rolling_features(df, params, ignore_columns=None):
 
     if type(params["featurize"]["add_mean"]) == list:
         for var in params["featurize"]["add_mean"]:
-            df[f"{var}_mean"] = df[var].rolling(params["featurize"]["rolling_window_size_mean"]).mean()
+            df[f"{var}_mean"] = (
+                df[var].rolling(params["featurize"]["rolling_window_size_mean"]).mean()
+            )
 
     if type(params["featurize"]["add_maximum"]) == list:
         for var in params["featurize"]["add_maximum"]:
-            df[f"{var}_maximum"] = df[var].rolling(params["featurize"]["rolling_window_size_max_min"]).max()
+            df[f"{var}_maximum"] = (
+                df[var]
+                .rolling(params["featurize"]["rolling_window_size_max_min"])
+                .max()
+            )
 
     if type(params["featurize"]["add_minimum"]) == list:
         for var in params["featurize"]["add_minimum"]:
-            minimum = df[var].rolling(params["featurize"]["rolling_window_size_max_min"]).min()
+            minimum = (
+                df[var]
+                .rolling(params["featurize"]["rolling_window_size_max_min"])
+                .min()
+            )
 
     if type(params["featurize"]["add_min_max_range"]) == list:
         for var in params["featurize"]["add_min_max_range"]:
-            maximum = df[var].rolling(params["featurize"]["rolling_window_size_max_min"]).max()
-            minimum = df[var].rolling(params["featurize"]["rolling_window_size_max_min"]).min()
+            maximum = (
+                df[var]
+                .rolling(params["featurize"]["rolling_window_size_max_min"])
+                .max()
+            )
+            minimum = (
+                df[var]
+                .rolling(params["featurize"]["rolling_window_size_max_min"])
+                .min()
+            )
             df[f"{var}_min_max_range"] = maximum - minimum
 
     if type(params["featurize"]["add_slope"]) == list:
@@ -231,7 +238,11 @@ def compute_rolling_features(df, params, ignore_columns=None):
 
     if type(params["featurize"]["add_standard_deviation"]) == list:
         for var in params["featurize"]["add_standard_deviation"]:
-            df[f"{var}_standard_deviation"] = df[var].rolling(params["featurize"]["rolling_window_size_standard_deviation"]).std()
+            df[f"{var}_standard_deviation"] = (
+                df[var]
+                .rolling(params["featurize"]["rolling_window_size_standard_deviation"])
+                .std()
+            )
 
     if type(params["featurize"]["add_variance"]) == list:
         for var in params["featurize"]["add_variance"]:

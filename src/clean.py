@@ -28,7 +28,7 @@ from config import (
     INPUT_FEATURES_PATH,
     OUTPUT_FEATURES_PATH,
     PROFILE_PATH,
-    REMOVABLE_FEATURES
+    REMOVABLE_FEATURES,
 )
 from preprocess_utils import find_files
 
@@ -63,7 +63,6 @@ def clean(dir_path=DATA_PATH_RAW, inference_df=None):
         removable_features = parse_profile_warnings()
         pd.DataFrame(removable_features).to_csv(REMOVABLE_FEATURES)
 
-
         # Find input files
         filepaths = find_files(dir_path, file_extension=".csv")
 
@@ -73,9 +72,9 @@ def clean(dir_path=DATA_PATH_RAW, inference_df=None):
             dfs.append(pd.read_csv(filepath))
     else:
         # Remove features that should not be used with the current model.
-        removable_features = np.array(pd.read_csv(REMOVABLE_FEATURES, index_col=0)).reshape(
-            -1
-        )
+        removable_features = np.array(
+            pd.read_csv(REMOVABLE_FEATURES, index_col=0)
+        ).reshape(-1)
 
         dfs = [inference_df]
 
@@ -214,7 +213,7 @@ def parse_profile_warnings():
     for message in messages:
         message = message.split()
         warning = message[0]
-        variable = " ".join(message[message.index("column") + 1:])
+        variable = " ".join(message[message.index("column") + 1 :])
 
         if warning == "[CONSTANT]":
             removable_features.append(variable)

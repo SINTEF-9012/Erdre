@@ -78,6 +78,7 @@ train:
     kernel_size: 5
     early_stopping: True
     patience: 20
+    hyperparameter_tuning: False
 
 evaluate:
     show_inputs: True
