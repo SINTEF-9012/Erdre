@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 """Clean up data.
 
-TODO: Remove features with high correlation
-
 Author:
     Erik Johannes Husom
 
@@ -22,10 +20,8 @@ from sklearn.preprocessing import LabelBinarizer, LabelEncoder
 
 from config import (
     DATA_CLEANED_PATH,
-    DATA_PATH,
     DATA_PATH_RAW,
     FEATURES_PATH,
-    INPUT_FEATURES_PATH,
     OUTPUT_FEATURES_PATH,
     PROFILE_PATH,
     REMOVABLE_FEATURES,
@@ -78,7 +74,7 @@ def clean(dir_path=DATA_PATH_RAW, inference_df=None):
 
         dfs = [inference_df]
 
-    dfs = read_data(dfs, removable_features)
+    dfs = remove_features(dfs, removable_features)
     combined_df = pd.concat(dfs, ignore_index=True)
 
     if inference_df is not None:
@@ -86,48 +82,57 @@ def clean(dir_path=DATA_PATH_RAW, inference_df=None):
             del combined_df[target]
 
         return combined_df
-    else:
-        if classification:
 
-            if onehot_encode_target and len(np.unique(combined_df[target])) > 2:
-                encoder = LabelBinarizer()
-            else:
-                if onehot_encode_target:
-                    raise ValueError(
-                        "Parameter 'onehot_encode_target' is set to True, but target is binary. Change parameter to False in order to use this pipeline."
-                    )
-                encoder = LabelEncoder()
+    if classification:
 
-            target_col = np.array(combined_df[target]).reshape(-1)
-            encoder.fit(target_col)
-            # print(f"Classes: {encoder.classes_}")
-            # print(f"Encoded classes: {encoder.transform(encoder.classes_)}")
-
-            combined_df, output_columns = encode_target(encoder, combined_df, target)
-
-            for i in range(len(dfs)):
-                dfs[i], _ = encode_target(encoder, dfs[i], target)
-
+        if onehot_encode_target and len(np.unique(combined_df[target])) > 2:
+            encoder = LabelBinarizer()
         else:
-            output_columns = [target]
-
-        DATA_CLEANED_PATH.mkdir(parents=True, exist_ok=True)
-
-        if combine_files:
-            combined_df.to_csv(
-                DATA_CLEANED_PATH / (os.path.basename("data-cleaned.csv"))
-            )
-        else:
-            for filepath, df in zip(filepaths, dfs):
-                df.to_csv(
-                    DATA_CLEANED_PATH
-                    / (os.path.basename(filepath).replace(".", "-cleaned."))
+            if onehot_encode_target:
+                raise ValueError(
+                    "Parameter 'onehot_encode_target' is set to True, but target is binary. Change parameter to False in order to use this pipeline."
                 )
+            encoder = LabelEncoder()
 
-        pd.DataFrame(output_columns).to_csv(OUTPUT_FEATURES_PATH)
+        target_col = np.array(combined_df[target]).reshape(-1)
+        encoder.fit(target_col)
+        # print(f"Classes: {encoder.classes_}")
+        # print(f"Encoded classes: {encoder.transform(encoder.classes_)}")
+
+        combined_df, output_columns = encode_target(encoder, combined_df, target)
+
+        for i in range(len(dfs)):
+            dfs[i], _ = encode_target(encoder, dfs[i], target)
+
+    else:
+        output_columns = [target]
+
+    DATA_CLEANED_PATH.mkdir(parents=True, exist_ok=True)
+
+    if combine_files:
+        combined_df.to_csv(DATA_CLEANED_PATH / (os.path.basename("data-cleaned.csv")))
+    else:
+        for filepath, df in zip(filepaths, dfs):
+            df.to_csv(
+                DATA_CLEANED_PATH
+                / (os.path.basename(filepath).replace(".", "-cleaned."))
+            )
+
+    pd.DataFrame(output_columns).to_csv(OUTPUT_FEATURES_PATH)
 
 
-def read_data(dfs, removable_features):
+def remove_features(dfs, removable_features):
+    """Read data and delete removable features.
+
+    Args:
+        dfs (list of DataFrames): Data frames to read.
+        removable_features (list): Features/columns to remove.
+
+    Returns:
+        cleaned_dfs (list of DataFrames): Data frames with removeable features
+            removed.
+
+    """
 
     cleaned_dfs = []
 
@@ -190,8 +195,6 @@ def parse_profile_warnings():
 
     """
     params = yaml.safe_load(open("params.yaml"))["clean"]
-    correlation_metric = "pearson"
-    # correlation_metric = params["correlation_metric"]
     target = params["target"]
 
     profile_json = json.load(open(PROFILE_PATH / "profile.json"))
@@ -246,8 +249,7 @@ def parse_profile_warnings():
                 # Pandas profiling might not be able to compute correlation
                 # score for some variables, for example some categorical
                 # variables.
-                pass
-                # print(f"{variable}: Could not find correlation score.")
+                print(f"{variable}: Could not find correlation score.")
 
     removable_features = list(set(removable_features))
 
