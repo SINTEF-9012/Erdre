@@ -161,6 +161,7 @@ def train(filepath):
             output_activation=output_activation,
             loss=loss,
             metrics=metrics,
+            activation_function="relu"
         )
     elif learning_method.startswith("lstm"):
         hist_size = X_train.shape[-2]

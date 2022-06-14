@@ -10,9 +10,9 @@ Date:
 
 """
 import numpy as np
-from keras_tuner import HyperModel
 import tensorflow as tf
 import tensorflow_probability as tfp
+from keras_tuner import HyperModel
 from tensorflow.keras import layers, models, optimizers
 from tensorflow.random import set_seed
 
@@ -25,6 +25,9 @@ import edward2 as ed
 from edward2.tensorflow import constraints, initializers, random_variable, regularizers
 from edward2.tensorflow.layers import utils
 
+from cyclemoid_pytorch.easteregg import CycleMoid
+
+tf.keras.utils.get_custom_objects()['cyclemoid'] = CycleMoid
 
 def cnn(
     input_x,
@@ -34,6 +37,7 @@ def cnn(
     output_activation="linear",
     loss="mse",
     metrics="mse",
+    activation_function="relu"
 ):
     """Define a CNN model architecture using Keras.
 
@@ -58,7 +62,7 @@ def cnn(
         layers.Conv1D(
             filters=16,
             kernel_size=kernel_size,
-            activation="relu",
+            activation=activation_function,
             input_shape=(input_x, input_y),
             name="input_layer",
             padding="SAME",
@@ -67,22 +71,23 @@ def cnn(
     # model.add(layers.MaxPooling1D(pool_size=4, name="pool_1"))
     # model.add(
     #    layers.Conv1D(
-    #        filters=16, kernel_size=kernel_size, activation="relu",
+    #        filters=16, kernel_size=kernel_size, activation=activation_function,
     #        name="conv1d_2", padding="SAME"
     #    )
     # )
     # model.add(layers.MaxPooling1D(pool_size=4, name="pool_2"))
     # model.add(layers.Conv1D(filters=32, kernel_size=kernel_size,
-    # activation="relu", name="conv1d_3"))
+    # activation=activation_function, name="conv1d_3"))
     model.add(layers.Flatten(name="flatten"))
-    # model.add(layers.Dense(64, activation="relu", name="dense_2"))
-    model.add(layers.Dense(32, activation="relu", name="dense_3"))
+    # model.add(layers.Dense(64, activation=activation_function, name="dense_2"))
+    model.add(layers.Dense(32, activation=activation_function, name="dense_3"))
     model.add(
         layers.Dense(output_length, activation=output_activation, name="output_layer")
     )
     model.compile(optimizer="adam", loss=loss, metrics=metrics)
 
     return model
+
 
 def cnn3(
     input_x,
@@ -92,6 +97,7 @@ def cnn3(
     output_activation="linear",
     loss="mse",
     metrics="mse",
+    activation_function="relu"
 ):
     """Define a CNN model architecture using Keras.
 
@@ -116,7 +122,7 @@ def cnn3(
         layers.Conv1D(
             filters=64,
             kernel_size=kernel_size,
-            activation="relu",
+            activation=activation_function,
             input_shape=(input_x, input_y),
             name="input_layer",
             padding="SAME",
@@ -124,24 +130,31 @@ def cnn3(
     )
     model.add(layers.MaxPooling1D(pool_size=4, name="pool_1"))
     model.add(
-       layers.Conv1D(
-           filters=32, kernel_size=kernel_size, activation="relu",
-           name="conv1d_2", padding="SAME"
-       )
+        layers.Conv1D(
+            filters=32,
+            kernel_size=kernel_size,
+            activation=activation_function,
+            name="conv1d_2",
+            padding="SAME",
+        )
     )
     model.add(layers.MaxPooling1D(pool_size=4, name="pool_2"))
-    model.add(layers.Conv1D(filters=16, kernel_size=kernel_size,
-        activation="relu", name="conv1d_3"))
+    model.add(
+        layers.Conv1D(
+            filters=16, kernel_size=kernel_size, activation=activation_function, name="conv1d_3"
+        )
+    )
     model.add(layers.Flatten(name="flatten"))
-    # model.add(layers.Dense(64, activation="relu", name="dense_2"))
-    model.add(layers.Dense(256, activation="relu", name="dense_3"))
-    model.add(layers.Dense(128, activation="relu", name="dense_4"))
+    # model.add(layers.Dense(64, activation=activation_function, name="dense_2"))
+    model.add(layers.Dense(256, activation=activation_function, name="dense_3"))
+    model.add(layers.Dense(128, activation=activation_function, name="dense_4"))
     model.add(
         layers.Dense(output_length, activation=output_activation, name="output_layer")
     )
     model.compile(optimizer="adam", loss=loss, metrics=metrics)
 
     return model
+
 
 def cnn2(
     input_x,
@@ -151,6 +164,7 @@ def cnn2(
     output_activation="linear",
     loss="mse",
     metrics="mse",
+    activation_function="relu"
 ):
     """Define a CNN model architecture using Keras.
 
@@ -175,7 +189,7 @@ def cnn2(
         layers.Conv1D(
             filters=256,
             kernel_size=kernel_size,
-            activation="relu",
+            activation=activation_function,
             input_shape=(input_x, input_y),
             name="input_layer",
         )
@@ -183,27 +197,27 @@ def cnn2(
     # model.add(layers.MaxPooling1D(pool_size=4, name="pool_1"))
     model.add(
         layers.Conv1D(
-            filters=128, kernel_size=kernel_size, activation="relu", name="conv1d_1"
+            filters=128, kernel_size=kernel_size, activation=activation_function, name="conv1d_1"
         )
     )
     model.add(
         layers.Conv1D(
-            filters=64, kernel_size=kernel_size, activation="relu", name="conv1d_2"
+            filters=64, kernel_size=kernel_size, activation=activation_function, name="conv1d_2"
         )
     )
     model.add(layers.MaxPooling1D(pool_size=4, name="pool_1"))
     model.add(
         layers.Conv1D(
-            filters=32, kernel_size=kernel_size, activation="relu", name="conv1d_3"
+            filters=32, kernel_size=kernel_size, activation=activation_function, name="conv1d_3"
         )
     )
     # model.add(layers.Conv1D(filters=32, kernel_size=kernel_size,
-    # activation="relu", name="conv1d_4"))
+    # activation=activation_function, name="conv1d_4"))
     # model.add(layers.Dropout(rate=0.1))
     model.add(layers.Flatten(name="flatten"))
-    model.add(layers.Dense(128, activation="relu", name="dense_1"))
-    model.add(layers.Dense(64, activation="relu", name="dense_2"))
-    model.add(layers.Dense(32, activation="relu", name="dense_3"))
+    model.add(layers.Dense(128, activation=activation_function, name="dense_1"))
+    model.add(layers.Dense(64, activation=activation_function, name="dense_2"))
+    model.add(layers.Dense(32, activation=activation_function, name="dense_3"))
     # model.add(layers.Dropout(rate=0.1))
     model.add(
         layers.Dense(output_length, activation=output_activation, name="output_layer")
@@ -223,6 +237,7 @@ def dnn(
     output_activation="linear",
     loss="mse",
     metrics="mse",
+    activation_function="relu"
 ):
     """Define a DNN model architecture using Keras.
 
@@ -239,11 +254,11 @@ def dnn(
     tf.random.set_seed(seed)
 
     model = models.Sequential()
-    model.add(layers.Dense(16, activation="relu", input_dim=input_x))
-    # model.add(layers.Dense(256, activation='relu', input_dim=input_x))
-    model.add(layers.Dense(16, activation="relu"))
-    # model.add(layers.Dense(32, activation='relu'))
-    # model.add(layers.Dense(32, activation='relu'))
+    model.add(layers.Dense(16, activation=activation_function, input_dim=input_x))
+    # model.add(layers.Dense(256, activation=activation_function, input_dim=input_x))
+    model.add(layers.Dense(16, activation=activation_function))
+    # model.add(layers.Dense(32, activation=activation_function))
+    # model.add(layers.Dense(32, activation=activation_function))
     model.add(layers.Dense(output_length, activation=output_activation))
     model.compile(optimizer="adam", loss=loss, metrics=metrics)
 
@@ -257,6 +272,7 @@ def dnn_simple(
     output_activation="linear",
     loss="mse",
     metrics="mse",
+    activation_function="relu"
 ):
     """Define a DNN model architecture using Keras.
 
@@ -273,8 +289,8 @@ def dnn_simple(
     tf.random.set_seed(seed)
 
     model = models.Sequential()
-    model.add(layers.Dense(16, activation="relu", input_dim=input_x))
-    # model.add(layers.Dense(16, activation="relu"))
+    model.add(layers.Dense(16, activation=activation_function, input_dim=input_x))
+    # model.add(layers.Dense(16, activation=activation_function))
     model.add(layers.Dense(output_length, activation=output_activation))
     model.compile(optimizer="adam", loss=loss, metrics=metrics)
 
@@ -288,6 +304,7 @@ def lstm(
     output_activation="linear",
     loss="mse",
     metrics="mse",
+    activation_function="relu"
 ):
     """Define a LSTM model architecture using Keras.
 
@@ -307,9 +324,9 @@ def lstm(
         layers.LSTM(100, input_shape=(hist_size, n_features))
     )  # , return_sequences=True))
     model.add(layers.Dropout(0.5))
-    # model.add(layers.LSTM(32, activation='relu'))
-    # model.add(layers.LSTM(16, activation='relu'))
-    model.add(layers.Dense(100, activation="relu"))
+    # model.add(layers.LSTM(32, activation=activation_function))
+    # model.add(layers.LSTM(16, activation=activation_function))
+    model.add(layers.Dense(100, activation=activation_function))
     model.add(layers.Dense(n_steps_out, activation=output_activation))
     model.compile(optimizer="adam", loss=loss, metrics=metrics)
 
@@ -323,6 +340,7 @@ def lstm2(
     output_activation="linear",
     loss="mse",
     metrics="mse",
+    activation_function="relu"
 ):
     """Define a LSTM model architecture using Keras.
 
@@ -342,13 +360,14 @@ def lstm2(
         layers.LSTM(50, input_shape=(hist_size, n_features))
     )  # , return_sequences=True))
     # model.add(layers.Dropout(0.5))
-    # model.add(layers.LSTM(32, activation='relu'))
-    # model.add(layers.LSTM(16, activation='relu'))
-    model.add(layers.Dense(100, activation="relu"))
+    # model.add(layers.LSTM(32, activation=activation_function))
+    # model.add(layers.LSTM(16, activation=activation_function))
+    model.add(layers.Dense(100, activation=activation_function))
     model.add(layers.Dense(n_steps_out, activation=output_activation))
     model.compile(optimizer="adam", loss=loss, metrics=metrics)
 
     return model
+
 
 def rnn(
     hist_size,
@@ -357,6 +376,7 @@ def rnn(
     output_activation="linear",
     loss="mse",
     metrics="mse",
+    activation_function="relu"
 ):
     """Define a LSTM model architecture using Keras.
 
@@ -389,6 +409,7 @@ def gru(
     output_activation="linear",
     loss="mse",
     metrics="mse",
+    activation_function="relu"
 ):
     """Define a LSTM model architecture using Keras.
 
@@ -412,6 +433,7 @@ def gru(
     model.compile(optimizer="adam", loss=loss, metrics=metrics)
 
     return model
+
 
 def cnndnn(input_x, input_y, n_forecast_hours, n_steps_out=1):
     """Define a model architecture that combines CNN and DNN.
@@ -440,24 +462,24 @@ def cnndnn(input_x, input_y, n_forecast_hours, n_steps_out=1):
     c = layers.Conv1D(
         filters=64,
         kernel_size=kernel_size,
-        activation="relu",
+        activation=activation_function,
         input_shape=(input_x, input_y),
     )(input_hist)
-    c = layers.Conv1D(filters=32, kernel_size=kernel_size, activation="relu")(c)
+    c = layers.Conv1D(filters=32, kernel_size=kernel_size, activation=activation_function)(c)
     c = layers.Flatten()(c)
-    c = layers.Dense(128, activation="relu")(c)
+    c = layers.Dense(128, activation=activation_function)(c)
     c = models.Model(inputs=input_hist, outputs=c)
 
-    d = layers.Dense(256, input_dim=n_forecast_hours, activation="relu")(input_forecast)
-    d = layers.Dense(128, activation="relu")(d)
-    d = layers.Dense(64, activation="relu")(d)
+    d = layers.Dense(256, input_dim=n_forecast_hours, activation=activation_function)(input_forecast)
+    d = layers.Dense(128, activation=activation_function)(d)
+    d = layers.Dense(64, activation=activation_function)(d)
     d = models.Model(inputs=input_forecast, outputs=d)
 
     combined = layers.concatenate([c.output, d.output])
 
-    combined = layers.Dense(256, activation="relu")(combined)
-    combined = layers.Dense(128, activation="relu")(combined)
-    combined = layers.Dense(64, activation="relu")(combined)
+    combined = layers.Dense(256, activation=activation_function)(combined)
+    combined = layers.Dense(128, activation=activation_function)(combined)
+    combined = layers.Dense(64, activation=activation_function)(combined)
     combined = layers.Dense(n_steps_out, activation="linear")(combined)
 
     model = models.Model(inputs=[c.input, d.input], outputs=combined)
@@ -601,8 +623,6 @@ def brnn(data_size, window_size, feature_size, batch_size, hidden_size=5):
     """
 
     inputs = layers.Input(shape=(window_size, feature_size))
-    #
-    #
 
     forward = layers.RNN(
         cell=ed.layers.LSTMCellFlipout(
@@ -804,8 +824,7 @@ def bcnn_edward(
 
 
 class SequentialHyperModel(HyperModel):
-    def __init__(self, input_x, input_y=0, n_steps_out=1, loss="mse",
-            metrics="mse"):
+    def __init__(self, input_x, input_y=0, n_steps_out=1, loss="mse", metrics="mse"):
         """Define size of model.
 
         Args:
@@ -875,8 +894,7 @@ class SequentialHyperModel(HyperModel):
 
 
 class LSTMHyperModel(HyperModel):
-    def __init__(self, input_x, input_y=0, n_steps_out=1, loss="mse",
-            metrics="mse"):
+    def __init__(self, input_x, input_y=0, n_steps_out=1, loss="mse", metrics="mse"):
         """Define size of model.
 
         Args:
@@ -952,8 +970,7 @@ class LSTMHyperModel(HyperModel):
 
 
 class CNNHyperModel(HyperModel):
-    def __init__(self, input_x, input_y, n_steps_out=1, loss="mse",
-            metrics="mse"):
+    def __init__(self, input_x, input_y, n_steps_out=1, loss="mse", metrics="mse"):
         """Define size of model.
 
         Args:
