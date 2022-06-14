@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import os
+"""Profile dataset.
+
+Created:
+    2021-06-30
+
+"""
 import sys
 
 import pandas as pd
@@ -11,7 +16,7 @@ from config import PROFILE_PATH
 from preprocess_utils import find_files
 
 
-def profile(dir_path):
+def profiling(dir_path):
     """Creates a profile report of a data set.
 
     Reads data from a set of input files, and creates a report containing
@@ -26,13 +31,14 @@ def profile(dir_path):
 
     """
 
-    dataset = yaml.safe_load(open("params.yaml"))["profile"]["dataset"]
-    """Name of data set, which must be the name of subfolder of
-    'assets/data/raw', in where to look for data."""
+    # Reading the name of data set, which must be the name of subfolder of
+    # 'assets/data/raw', in where to look for data.
+    with open("params.yaml", "r", encoding="UTF-8") as infile:
+        dataset = yaml.safe_load(infile)["profile"]["dataset"]
 
     # If no name of data set is given, all files present in 'assets/data/raw'
     # will be used.
-    if dataset != None:
+    if dataset is not None:
         dir_path += "/" + dataset
 
     filepaths = find_files(dir_path, file_extension=".csv")
@@ -63,4 +69,4 @@ def profile(dir_path):
 
 if __name__ == "__main__":
 
-    profile(sys.argv[1])
+    profiling(sys.argv[1])
