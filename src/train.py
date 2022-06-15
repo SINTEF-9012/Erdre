@@ -71,9 +71,8 @@ def train(filepath):
 
     # Load parameters
     params = yaml.safe_load(open("params.yaml"))["train"]
-    learning_method = params["learning_method"]
+    learning_method = params["learning_method"].lower()
     use_early_stopping = params["early_stopping"]
-    patience = params["patience"]
     target_size = yaml.safe_load(open("params.yaml"))["sequentialize"]["target_size"]
     classification = yaml.safe_load(open("params.yaml"))["clean"]["classification"]
     onehot_encode_target = yaml.safe_load(open("params.yaml"))["clean"][
@@ -152,37 +151,59 @@ def train(filepath):
 
         model = tuner.get_best_models()[0]
 
-    elif learning_method == "cnn":
-        hist_size = X_train.shape[-2]
-        model = nn.cnn(
-            hist_size,
-            n_features,
-            output_length=output_length,
-            kernel_size=params["kernel_size"],
-            output_activation=output_activation,
-            loss=loss,
-            metrics=metrics,
-        )
     elif learning_method.startswith("dnn"):
         build_model = getattr(nn, learning_method)
         model = build_model(
             n_features,
             output_length=output_length,
+            activation_function=params["activation_function"],
             output_activation=output_activation,
+            n_layers=params["n_layers"],
+            n_nodes=params["n_neurons"],
             loss=loss,
             metrics=metrics,
-            activation_function="relu",
+            dropout=params["dropout"],
+            seed=params["seed"]
         )
-    elif learning_method.startswith("lstm"):
+    elif learning_method.startswith("cnn"):
         hist_size = X_train.shape[-2]
         build_model = getattr(nn, learning_method)
         model = build_model(
             hist_size,
             n_features,
-            n_steps_out=output_length,
+            output_length=output_length,
+            kernel_size=params["kernel_size"],
+            activation_function=params["activation_function"],
             output_activation=output_activation,
             loss=loss,
             metrics=metrics,
+            n_layers=params["n_layers"],
+            n_filters=params["n_neurons"],
+            maxpooling=params["maxpooling"],
+            maxpooling_size=params["maxpooling_size"],
+            dropout=params["dropout"],
+            n_dense_layers=params["n_flattened_layers"],
+            n_nodes=params["n_flattened_nodes"],
+            seed=params["seed"]
+        )
+    elif learning_method.startswith("rnn"):
+        hist_size = X_train.shape[-2]
+        build_model = getattr(nn, learning_method)
+        model = build_model(
+            hist_size,
+            n_features,
+            output_length=output_length,
+            unit_type=params["unit_type"].lower(),
+            activation_function=params["activation_function"],
+            output_activation=output_activation,
+            loss=loss,
+            metrics=metrics,
+            n_layers=params["n_layers"],
+            n_units=params["n_neurons"],
+            dropout=params["dropout"],
+            n_dense_layers=params["n_flattened_layers"],
+            n_nodes=params["n_flattened_nodes"],
+            seed=params["seed"]
         )
     elif learning_method == "dt":
         if classification:
@@ -343,7 +364,7 @@ def train(filepath):
 
         early_stopping = EarlyStopping(
             monitor="val_" + monitor_metric,
-            patience=patience,
+            patience=params["patience"],
             verbose=4,
             restore_best_weights=True,
         )

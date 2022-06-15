@@ -134,13 +134,22 @@ stages:
         - assets/models
         params:
         - clean.classification
+        - train.seed
         - train.learning_method
+        - train.hyperparameter_tuning
         - train.n_epochs
-        - train.batch_size
-        - train.kernel_size
         - train.early_stopping
         - train.patience
-        - train.hyperparameter_tuning
+        - train.activation_function
+        - train.batch_size
+        - train.n_layers
+        - train.n_neurons
+        - train.kernel_size
+        - train.maxpooling
+        - train.maxpooling_size
+        - train.cnn_n_dense_layers
+        - train.cnn_n_dense_nodes
+        - train.dropout
 
     evaluate:
         cmd: python3 src/evaluate.py assets/models/model.h5 assets/data/combined/train.npz assets/data/combined/test.npz assets/data/combined/calibrate.npz

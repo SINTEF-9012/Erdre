@@ -22,6 +22,7 @@ tfpl = tfp.layers
 tfd = tfp.distributions
 
 import edward2 as ed
+
 # from cyclemoid_pytorch.easteregg import CycleMoid
 from edward2.tensorflow import constraints, initializers, random_variable, regularizers
 from edward2.tensorflow.layers import utils
@@ -29,234 +30,35 @@ from edward2.tensorflow.layers import utils
 # tf.keras.utils.get_custom_objects()["cyclemoid"] = CycleMoid
 
 
-def cnn(
-    input_x,
-    input_y,
-    output_length=1,
-    kernel_size=2,
-    output_activation="linear",
-    loss="mse",
-    metrics="mse",
-    activation_function="relu",
-):
-    """Define a CNN model architecture using Keras.
-
-    Args:
-        input_x (int): Number of time steps to include in each sample, i.e. how
-            much history is matched with a given target.
-        input_y (int): Number of features for each time step in the input data.
-        n_steps_out (int): Number of output steps.
-        seed (int): Seed for random initialization of weights.
-        kernel_size (int): Size of kernel in CNN.
-        output_activation: Activation function for outputs.
-
-    Returns:
-        model (keras model): Model to be trained.
-
-    """
-
-    kernel_size = kernel_size
-
-    model = models.Sequential()
-    model.add(
-        layers.Conv1D(
-            filters=16,
-            kernel_size=kernel_size,
-            activation=activation_function,
-            input_shape=(input_x, input_y),
-            name="input_layer",
-            padding="SAME",
-        )
-    )
-    # model.add(layers.MaxPooling1D(pool_size=4, name="pool_1"))
-    # model.add(
-    #    layers.Conv1D(
-    #        filters=16, kernel_size=kernel_size, activation=activation_function,
-    #        name="conv1d_2", padding="SAME"
-    #    )
-    # )
-    # model.add(layers.MaxPooling1D(pool_size=4, name="pool_2"))
-    # model.add(layers.Conv1D(filters=32, kernel_size=kernel_size,
-    # activation=activation_function, name="conv1d_3"))
-    model.add(layers.Flatten(name="flatten"))
-    # model.add(layers.Dense(64, activation=activation_function, name="dense_2"))
-    model.add(layers.Dense(32, activation=activation_function, name="dense_3"))
-    model.add(
-        layers.Dense(output_length, activation=output_activation, name="output_layer")
-    )
-    model.compile(optimizer="adam", loss=loss, metrics=metrics)
-
-    return model
-
-
-def cnn3(
-    input_x,
-    input_y,
-    output_length=1,
-    kernel_size=2,
-    output_activation="linear",
-    loss="mse",
-    metrics="mse",
-    activation_function="relu",
-):
-    """Define a CNN model architecture using Keras.
-
-    Args:
-        input_x (int): Number of time steps to include in each sample, i.e. how
-            much history is matched with a given target.
-        input_y (int): Number of features for each time step in the input data.
-        n_steps_out (int): Number of output steps.
-        seed (int): Seed for random initialization of weights.
-        kernel_size (int): Size of kernel in CNN.
-        output_activation: Activation function for outputs.
-
-    Returns:
-        model (keras model): Model to be trained.
-
-    """
-
-    kernel_size = kernel_size
-
-    model = models.Sequential()
-    model.add(
-        layers.Conv1D(
-            filters=64,
-            kernel_size=kernel_size,
-            activation=activation_function,
-            input_shape=(input_x, input_y),
-            name="input_layer",
-            padding="SAME",
-        )
-    )
-    model.add(layers.MaxPooling1D(pool_size=4, name="pool_1"))
-    model.add(
-        layers.Conv1D(
-            filters=32,
-            kernel_size=kernel_size,
-            activation=activation_function,
-            name="conv1d_2",
-            padding="SAME",
-        )
-    )
-    model.add(layers.MaxPooling1D(pool_size=4, name="pool_2"))
-    model.add(
-        layers.Conv1D(
-            filters=16,
-            kernel_size=kernel_size,
-            activation=activation_function,
-            name="conv1d_3",
-        )
-    )
-    model.add(layers.Flatten(name="flatten"))
-    # model.add(layers.Dense(64, activation=activation_function, name="dense_2"))
-    model.add(layers.Dense(256, activation=activation_function, name="dense_3"))
-    model.add(layers.Dense(128, activation=activation_function, name="dense_4"))
-    model.add(
-        layers.Dense(output_length, activation=output_activation, name="output_layer")
-    )
-    model.compile(optimizer="adam", loss=loss, metrics=metrics)
-
-    return model
-
-
-def cnn2(
-    input_x,
-    input_y,
-    output_length=1,
-    kernel_size=2,
-    output_activation="linear",
-    loss="mse",
-    metrics="mse",
-    activation_function="relu",
-):
-    """Define a CNN model architecture using Keras.
-
-    Args:
-        input_x (int): Number of time steps to include in each sample, i.e. how
-            much history is matched with a given target.
-        input_y (int): Number of features for each time step in the input data.
-        n_steps_out (int): Number of output steps.
-        seed (int): Seed for random initialization of weights.
-        kernel_size (int): Size of kernel in CNN.
-        output_activation: Activation function for outputs.
-
-    Returns:
-        model (keras model): Model to be trained.
-
-    """
-
-    kernel_size = kernel_size
-
-    model = models.Sequential()
-    model.add(
-        layers.Conv1D(
-            filters=256,
-            kernel_size=kernel_size,
-            activation=activation_function,
-            input_shape=(input_x, input_y),
-            name="input_layer",
-        )
-    )
-    # model.add(layers.MaxPooling1D(pool_size=4, name="pool_1"))
-    model.add(
-        layers.Conv1D(
-            filters=128,
-            kernel_size=kernel_size,
-            activation=activation_function,
-            name="conv1d_1",
-        )
-    )
-    model.add(
-        layers.Conv1D(
-            filters=64,
-            kernel_size=kernel_size,
-            activation=activation_function,
-            name="conv1d_2",
-        )
-    )
-    model.add(layers.MaxPooling1D(pool_size=4, name="pool_1"))
-    model.add(
-        layers.Conv1D(
-            filters=32,
-            kernel_size=kernel_size,
-            activation=activation_function,
-            name="conv1d_3",
-        )
-    )
-    # model.add(layers.Conv1D(filters=32, kernel_size=kernel_size,
-    # activation=activation_function, name="conv1d_4"))
-    # model.add(layers.Dropout(rate=0.1))
-    model.add(layers.Flatten(name="flatten"))
-    model.add(layers.Dense(128, activation=activation_function, name="dense_1"))
-    model.add(layers.Dense(64, activation=activation_function, name="dense_2"))
-    model.add(layers.Dense(32, activation=activation_function, name="dense_3"))
-    # model.add(layers.Dropout(rate=0.1))
-    model.add(
-        layers.Dense(output_length, activation=output_activation, name="output_layer")
-    )
-    model.compile(optimizer="adam", loss=loss, metrics=metrics)
-
-    # model.compile(optimizer=optimizers.Adam(lr=1e-8, beta_1=0.9, beta_2=0.999,
-    #     epsilon=1e-8, decay=0.0001), loss=loss, metrics=metrics)
-
-    return model
-
-
 def dnn(
-    input_x,
+    input_size,
     output_length=1,
-    seed=2020,
+    activation_function="relu",
     output_activation="linear",
     loss="mse",
     metrics="mse",
-    activation_function="relu",
+    n_layers=2,
+    n_nodes=16,
+    dropout=0.0,
+    seed=2020,
 ):
     """Define a DNN model architecture using Keras.
 
     Args:
-        input_x (int): Number of features.
+        input_size (int): Number of features.
         output_length (int): Number of output steps.
-        output_activation: Activation function for outputs.
+        activation_function (str): Activation function in hidden layers.
+        output_activation (str): Activation function for outputs.
+        loss (str): Loss to penalize during training.
+        metrics (str): Metrics to evaluate model.
+        n_layers (int): Number of hidden layers.
+        n_nodes (int or list of int): Number of nodes in each layer. If int,
+            all layers have the same number of nodes. If list, the length of
+            the list must match the number of layers, and each integer of the
+            list specifies the number of nodes in the corresponding layer.
+        dropout (float or list of float): Dropout, either the same for all
+            layers, or a list specifying dropout for each layer.
+        seed (int): Random seed.
 
     Returns:
         model (keras model): Model to be trained.
@@ -265,33 +67,75 @@ def dnn(
 
     tf.random.set_seed(seed)
 
+    n_nodes = element2list(n_nodes, n_layers)
+    dropout = element2list(dropout, n_layers)
+
     model = models.Sequential()
-    model.add(layers.Dense(16, activation=activation_function, input_dim=input_x))
-    # model.add(layers.Dense(256, activation=activation_function, input_dim=input_x))
-    model.add(layers.Dense(16, activation=activation_function))
-    # model.add(layers.Dense(32, activation=activation_function))
-    # model.add(layers.Dense(32, activation=activation_function))
+
+    model.add(
+        layers.Dense(n_nodes[0], activation=activation_function, input_dim=input_size)
+    )
+
+    model.add(layers.Dropout(dropout[0]))
+
+    for i in range(1, n_layers):
+        model.add(layers.Dense(n_nodes[i], activation=activation_function))
+
+        model.add(layers.Dropout(dropout[i]))
+
     model.add(layers.Dense(output_length, activation=output_activation))
+
     model.compile(optimizer="adam", loss=loss, metrics=metrics)
 
     return model
 
 
-def dnn_simple(
-    input_x,
+def cnn(
+    input_size_x,
+    input_size_y,
     output_length=1,
-    seed=2020,
+    kernel_size=2,
+    activation_function="relu",
     output_activation="linear",
     loss="mse",
     metrics="mse",
-    activation_function="relu",
+    n_layers=2,
+    n_filters=16,
+    maxpooling=False,
+    maxpooling_size=4,
+    n_dense_layers=1,
+    n_nodes=16,
+    dropout=0.0,
+    seed=2020,
 ):
-    """Define a DNN model architecture using Keras.
+    """Define a CNN model architecture using Keras.
 
     Args:
-        input_x (int): Number of features.
+        input_size_x (int): Number of time steps to include in each sample, i.e. how
+            much history is matched with a given target.
+        input_size_y (int): Number of features for each time step in the input data.
         output_length (int): Number of output steps.
+        kernel_size (int): Size of kernel in CNN.
+        activation_function (str): Activation function in hidden layers.
         output_activation: Activation function for outputs.
+        loss (str): Loss to penalize during training.
+        metrics (str): Metrics to evaluate model.
+        n_layers (int): Number of hidden layers.
+        n_filters (int or list of int): Number of filters in each layer. If int,
+            all layers have the same number of filters. If list, the length of
+            the list must match the number of layers, and each integer of the
+            list specifies the number of filters in the corresponding layer.
+        n_dense_layers (int): Number of dense layers after the convolutional
+            layers.
+        n_nodes (int or list of int): Number of nodes in each layer. If int,
+            all layers have the same number of nodes. If list, the length of
+            the list must match the number of layers, and each integer of the
+            list specifies the number of nodes in the corresponding layer.
+        maxpooling (bool): If True, add maxpooling after each Conv1D-layer.
+        maxpooling_size (int): Size of maxpooling.
+        dropout (float or list of float): Dropout, either the same for all
+            layers, or a list specifying dropout for each layer.
+        seed (int): Seed for random initialization of weights.
 
     Returns:
         model (keras model): Model to be trained.
@@ -300,148 +144,162 @@ def dnn_simple(
 
     tf.random.set_seed(seed)
 
-    model = models.Sequential()
-    model.add(layers.Dense(16, activation=activation_function, input_dim=input_x))
-    # model.add(layers.Dense(16, activation=activation_function))
-    model.add(layers.Dense(output_length, activation=output_activation))
-    model.compile(optimizer="adam", loss=loss, metrics=metrics)
-
-    return model
-
-
-def lstm(
-    hist_size,
-    n_features,
-    n_steps_out=1,
-    output_activation="linear",
-    loss="mse",
-    metrics="mse",
-    activation_function="relu",
-):
-    """Define a LSTM model architecture using Keras.
-
-    Args:
-        hist_size (int): Number of time steps to include in each sample, i.e.
-            how much history should be matched with a given target.
-        n_features (int): Number of features for each time step, in the input
-            data.
-
-    Returns:
-        model (Keras model): Model to be trained.
-
-    """
+    n_filters = element2list(n_filters, n_layers)
+    n_nodes = element2list(n_nodes, n_dense_layers)
+    dropout = element2list(dropout, n_layers + n_dense_layers)
 
     model = models.Sequential()
+
     model.add(
-        layers.LSTM(100, input_shape=(hist_size, n_features))
-    )  # , return_sequences=True))
-    model.add(layers.Dropout(0.5))
-    # model.add(layers.LSTM(32, activation=activation_function))
-    # model.add(layers.LSTM(16, activation=activation_function))
-    model.add(layers.Dense(100, activation=activation_function))
-    model.add(layers.Dense(n_steps_out, activation=output_activation))
-    model.compile(optimizer="adam", loss=loss, metrics=metrics)
+        layers.Conv1D(
+            filters=n_filters[0],
+            kernel_size=kernel_size,
+            activation=activation_function,
+            input_shape=(input_size_x, input_size_y),
+            name="input_layer",
+            padding="SAME",
+        )
+    )
 
-    return model
+    if maxpooling:
+        model.add(layers.MaxPooling1D(pool_size=maxpooling_size, name="pool_0"))
 
+    model.add(layers.Dropout(dropout[0]))
 
-def lstm2(
-    hist_size,
-    n_features,
-    n_steps_out=1,
-    output_activation="linear",
-    loss="mse",
-    metrics="mse",
-    activation_function="relu",
-):
-    """Define a LSTM model architecture using Keras.
+    for i in range(1, n_layers):
+        model.add(
+            layers.Conv1D(
+                filters=n_filters[i],
+                kernel_size=kernel_size,
+                activation=activation_function,
+                name=f"conv1d_{i}",
+                padding="SAME",
+            )
+        )
 
-    Args:
-        hist_size (int): Number of time steps to include in each sample, i.e.
-            how much history should be matched with a given target.
-        n_features (int): Number of features for each time step, in the input
-            data.
+        if maxpooling:
+            model.add(layers.MaxPooling1D(pool_size=maxpooling_size, name=f"pool_{i}"))
 
-    Returns:
-        model (Keras model): Model to be trained.
+        model.add(layers.Dropout(dropout[i]))
 
-    """
+    model.add(layers.Flatten(name="flatten"))
 
-    model = models.Sequential()
+    for i in range(n_dense_layers):
+        model.add(
+            layers.Dense(n_nodes[i], activation=activation_function, name=f"dense_{i}")
+        )
+
+        model.add(layers.Dropout(dropout[n_layers + i]))
+
     model.add(
-        layers.LSTM(50, input_shape=(hist_size, n_features))
-    )  # , return_sequences=True))
-    # model.add(layers.Dropout(0.5))
-    # model.add(layers.LSTM(32, activation=activation_function))
-    # model.add(layers.LSTM(16, activation=activation_function))
-    model.add(layers.Dense(100, activation=activation_function))
-    model.add(layers.Dense(n_steps_out, activation=output_activation))
+        layers.Dense(output_length, activation=output_activation, name="output_layer")
+    )
+
     model.compile(optimizer="adam", loss=loss, metrics=metrics)
 
     return model
 
 
 def rnn(
-    hist_size,
-    n_features,
-    n_steps_out=1,
+    input_size_x,
+    input_size_y,
+    output_length=1,
+    unit_type="lstm",
+    activation_function="relu",
     output_activation="linear",
     loss="mse",
     metrics="mse",
-    activation_function="relu",
+    n_layers=2,
+    n_units=16,
+    n_dense_layers=1,
+    n_nodes=16,
+    dropout=0.1,
+    seed=2020,
 ):
-    """Define a LSTM model architecture using Keras.
+    """Define an RNN model architecture using Keras.
 
     Args:
-        hist_size (int): Number of time steps to include in each sample, i.e.
-            how much history should be matched with a given target.
-        n_features (int): Number of features for each time step, in the input
-            data.
+        input_size_x (int): Number of time steps to include in each sample, i.e. how
+            much history is matched with a given target.
+        input_size_y (int): Number of features for each time step in the input data.
+        output_length (int): Number of output steps.
+        unit_type (str): Type of RNN-unit: 'lstm', 'rnn' or 'gru'.
+        activation_function (str): Activation function in hidden layers.
+            output_activation: Activation function for outputs.
+            loss (str): Loss to penalize during training.
+        metrics (str): Metrics to evaluate model.
+        n_layers (int): Number of hidden layers.
+        n_units (int or list of int): Number of units in each layer. If int,
+            all layers have the same number of units. If list, the length of
+            the list must match the number of layers, and each integer of the
+            list specifies the number of units in the corresponding layer.
+        n_dense_layers (int): Number of dense layers after the convolutional
+            layers.
+        n_nodes (int or list of int): Number of nodes in each layer. If int,
+            all layers have the same number of nodes. If list, the length of
+            the list must match the number of layers, and each integer of the
+            list specifies the number of nodes in the corresponding layer.
+        dropout (float or list of float): Dropout, either the same for all
+            layers, or a list specifying dropout for each layer.
+        seed (int): Seed for random initialization of weights.
 
     Returns:
-        model (Keras model): Model to be trained.
+        model (keras model): Model to be trained.
 
     """
 
-    model = models.Sequential()
+    tf.random.set_seed(seed)
 
-    model.add(layers.SimpleRNN(8, input_shape=(hist_size, n_features)))
-    model.add(layers.Dropout(0.2))
+    n_units = element2list(n_units, n_layers)
+    n_nodes = element2list(n_nodes, n_dense_layers)
+    dropout = element2list(dropout, n_layers + n_dense_layers)
 
-    model.add(layers.Dense(n_steps_out, activation=output_activation))
-    model.compile(optimizer="adam", loss=loss, metrics=metrics)
+    return_sequences = True if n_layers > 1 else False
 
-    return model
-
-
-def gru(
-    hist_size,
-    n_features,
-    n_steps_out=1,
-    output_activation="linear",
-    loss="mse",
-    metrics="mse",
-    activation_function="relu",
-):
-    """Define a LSTM model architecture using Keras.
-
-    Args:
-        hist_size (int): Number of time steps to include in each sample, i.e.
-            how much history should be matched with a given target.
-        n_features (int): Number of features for each time step, in the input
-            data.
-
-    Returns:
-        model (Keras model): Model to be trained.
-
-    """
+    if unit_type.lower() == "rnn":
+        layer = getattr(layers, "SimpleRNN")
+    elif unit_type.lower() == "gru":
+        layer = getattr(layers, "GRU")
+    elif unit_type.lower() == "lstm":
+        layer = getattr(layers, "LSTM")
+    else:
+        layer = getattr(layers, "LSTM")
 
     model = models.Sequential()
 
-    model.add(layers.GRU(8, input_shape=(hist_size, n_features)))
-    model.add(layers.Dropout(0.2))
+    model.add(
+        layer(
+            n_units[0],
+            input_shape=(input_size_x, input_size_y),
+            return_sequences=return_sequences,
+            name="rnn_0",
+        )
+    )
 
-    model.add(layers.Dense(n_steps_out, activation=output_activation))
+    model.add(layers.Dropout(dropout[0]))
+
+    if return_sequences:
+        for i in range(1, n_layers):
+            model.add(
+                layer(n_units[i], activation=activation_function, name=f"rnn_{i}")
+            )
+
+        model.add(layers.Dropout(dropout[i]))
+
+    # Add dense layers
+    for i in range(n_dense_layers):
+        model.add(
+            layers.Dense(n_nodes[i], activation=activation_function, name=f"dense_{i}")
+        )
+
+        model.add(layers.Dropout(dropout[n_layers + i]))
+
+    # Output layer
+    model.add(
+        layers.Dense(output_length, activation=output_activation, name="output_layer")
+    )
+
+    # Compile model
     model.compile(optimizer="adam", loss=loss, metrics=metrics)
 
     return model
@@ -1088,3 +946,26 @@ class CNNHyperModel(HyperModel):
         model.compile(optimizer="adam", loss=self.loss, metrics=self.metrics)
 
         return model
+
+
+def element2list(element, expected_length):
+    """Take an element an produce a list.
+
+    If the element already is a list of the correct length, nothing will
+    change.
+
+    Args:
+        element (int, float or list)
+        expected_length (int): The length of the list.
+
+    Returns:
+        element (list): List of elements with correct length.
+
+    """
+
+    if isinstance(element, int) or isinstance(element, float):
+        element = [element] * expected_length
+    elif isinstance(element, list):
+        assert len(element) == expected_length
+
+    return element

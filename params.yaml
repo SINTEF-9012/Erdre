@@ -1,8 +1,8 @@
 profile:
-    dataset: name_of_dataset
+    dataset: cnc_milling_with_toolwear
 
 clean:
-    target: name_of_target_variable
+    target: S1_OutputPower
     classification: False
     onehot_encode_target: False
     combine_files: False
@@ -15,6 +15,9 @@ featurize:
     variables_to_include:
         # - variable1
         # - variable2
+        - X1_CommandPosition
+        - Y1_CommandPosition
+        - Z1_CommandPosition
 
     # By setting this to True, the add_-options below are overrided.
     use_all_engineered_features_on_all_variables: False
@@ -72,13 +75,31 @@ sequentialize:
     future_predict: False
 
 train:
-    learning_method: dnn
-    n_epochs: 10
-    batch_size: 256
-    kernel_size: 5
+    seed: 2020
+    learning_method: rnn
+    hyperparameter_tuning: False
+
+    # Parameters for deep learning (dnn, cnn, rnn):
+    n_epochs: 20
     early_stopping: True
     patience: 20
-    hyperparameter_tuning: False
+    activation_function: relu
+    batch_size: 256
+    n_layers: 2
+    n_neurons: [16, 16]
+    dropout: 0.1
+
+    # Parameters for cnn and rnn
+    n_flattened_layers: 1
+    n_flattened_nodes: 16
+
+    # Parameters for cnn:
+    kernel_size: 5
+    maxpooling: False
+    maxpooling_size: 4
+
+    # Parameters for rnn:
+    unit_type: LSTM
 
 evaluate:
     show_inputs: True
