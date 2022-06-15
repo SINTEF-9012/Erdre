@@ -76,18 +76,18 @@ sequentialize:
 
 train:
     seed: 2020
-    learning_method: rnn
+    learning_method: dnn
     hyperparameter_tuning: False
 
     # Parameters for deep learning (dnn, cnn, rnn):
-    n_epochs: 20
+    n_epochs: 100
     early_stopping: True
     patience: 20
     activation_function: relu
     batch_size: 256
-    n_layers: 2
-    n_neurons: [16, 16]
-    dropout: 0.1
+    n_layers: 3
+    n_neurons: 16
+    dropout: 0.2
 
     # Parameters for cnn and rnn
     n_flattened_layers: 1
@@ -99,7 +99,7 @@ train:
     maxpooling_size: 4
 
     # Parameters for rnn:
-    unit_type: LSTM
+    unit_type: rnn
 
 evaluate:
     show_inputs: True

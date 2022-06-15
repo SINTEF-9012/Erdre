@@ -144,12 +144,13 @@ stages:
         - train.batch_size
         - train.n_layers
         - train.n_neurons
+        - train.dropout
+        - train.n_flattened_layers
+        - train.n_flattened_nodes
         - train.kernel_size
         - train.maxpooling
         - train.maxpooling_size
-        - train.cnn_n_dense_layers
-        - train.cnn_n_dense_nodes
-        - train.dropout
+        - train.unit_type
 
     evaluate:
         cmd: python3 src/evaluate.py assets/models/model.h5 assets/data/combined/train.npz assets/data/combined/test.npz assets/data/combined/calibrate.npz

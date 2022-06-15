@@ -280,8 +280,12 @@ def rnn(
 
     if return_sequences:
         for i in range(1, n_layers):
+            if i == n_layers-1:
+                return_sequences = False
+
             model.add(
-                layer(n_units[i], activation=activation_function, name=f"rnn_{i}")
+                layer(n_units[i], activation=activation_function,
+                    name=f"rnn_{i}", return_sequences=return_sequences)
             )
 
         model.add(layers.Dropout(dropout[i]))

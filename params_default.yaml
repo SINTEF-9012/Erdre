@@ -94,8 +94,6 @@ train:
     kernel_size: 5
     maxpooling: False
     maxpooling_size: 4
-    cnn_n_dense_layers: 1
-    cnn_n_dense_nodes: 16
 
     # Parameters for rnn:
     unit_type: LSTM

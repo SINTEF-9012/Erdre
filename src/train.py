@@ -45,6 +45,8 @@ from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.keras.utils import plot_model
+# from tensorflow.keras.wrappers.scikit_learn import KerasRegressor, KerasClassifier
+# import tensorflow.keras.wrappers.scikit_learn as tf_sklearn
 
 import neural_networks as nn
 from config import (
@@ -72,7 +74,6 @@ def train(filepath):
     # Load parameters
     params = yaml.safe_load(open("params.yaml"))["train"]
     learning_method = params["learning_method"].lower()
-    use_early_stopping = params["early_stopping"]
     target_size = yaml.safe_load(open("params.yaml"))["sequentialize"]["target_size"]
     classification = yaml.safe_load(open("params.yaml"))["clean"]["classification"]
     onehot_encode_target = yaml.safe_load(open("params.yaml"))["clean"][
@@ -92,7 +93,6 @@ def train(filepath):
     y_train = train_data["y"]
 
     n_features = X_train.shape[-1]
-
     hist_size = X_train.shape[-2]
     target_size = y_train.shape[-1]
 
@@ -137,7 +137,6 @@ def train(filepath):
             hypermodel,
             objective="val_loss",
             directory="model_tuning",
-            # project_name="Erdre",
         )
         tuner.search_space_summary()
         tuner.search(
@@ -324,7 +323,7 @@ def train(filepath):
             feature_size=X_train.shape[2],
             kernel_size=params["kernel_size"],
             batch_size=params["batch_size"],
-            n_steps_out=target_size,
+            n_steps_out=output_length,
             output_activation=output_activation,
             classification=classification,
         )
@@ -332,7 +331,7 @@ def train(filepath):
         #                 window_size=X_train.shape[1],
         #                 feature_size=X_train.shape[2],
         #                 kernel_size=params["kernel_size"],
-        #                 n_steps_out=target_size,
+        #                 n_steps_out=output_length,
         #                 output_activation=output_activation,
         #                 classification=classification)
     else:
@@ -343,37 +342,31 @@ def train(filepath):
         dump(model, MODELS_FILE_PATH)
     else:
         print(model.summary())
+        plot_neural_network_architecture(model)
 
-        # Save a plot of the model. Will not work if Graphviz is not installed, and
-        # is therefore skipped if an error is thrown.
-        try:
-            PLOTS_PATH.mkdir(parents=True, exist_ok=True)
-            plot_model(
-                model,
-                to_file=PLOTS_PATH / "model.png",
-                show_shapes=False,
-                show_layer_names=True,
-                rankdir="TB",
-                expand_nested=True,
-                dpi=96,
+        # if params["cross_validation"]:
+        #     if classification:
+        #         keras_wrapper = getattr(tf_sklearn, "KerasClassifier")
+        #     else:
+        #         keras_wrapper = getattr(tf_sklearn, "KerasRegressor")
+
+        #     estimator = keras_wrapper(build_fn=buildmodel, epochs=params["epochs"], batch_size=params["batch_size"], verbose=0)
+        #     kfold= RepeatedKFold(n_splits=5, n_repeats=100)
+        #     results= cross_val_score(estimator, x, y, cv=kfold, n_jobs=2)  # 2 cpus
+        #     results.mean()  # Mean MSE
+
+        if params["early_stopping"]:
+            early_stopping = EarlyStopping(
+                monitor="val_" + monitor_metric,
+                patience=params["patience"],
+                verbose=4,
+                restore_best_weights=True,
             )
-        except:
-            print(
-                "Failed saving plot of the network architecture, Graphviz must be installed to do that."
+
+            model_checkpoint = ModelCheckpoint(
+                MODELS_FILE_PATH, monitor="val_" + monitor_metric  # , save_best_only=True
             )
 
-        early_stopping = EarlyStopping(
-            monitor="val_" + monitor_metric,
-            patience=params["patience"],
-            verbose=4,
-            restore_best_weights=True,
-        )
-
-        model_checkpoint = ModelCheckpoint(
-            MODELS_FILE_PATH, monitor="val_" + monitor_metric  # , save_best_only=True
-        )
-
-        if use_early_stopping:
             # Train model for 10 epochs before adding early stopping
             history = model.fit(
                 X_train,
@@ -429,6 +422,26 @@ def train(filepath):
         plt.legend()
         plt.savefig(TRAININGLOSS_PLOT_PATH)
 
+def plot_neural_network_architecture(model):
+    """Save a plot of the model. Will not work if Graphviz is not installed,
+    and is therefore skipped if an error is thrown.
+
+    """
+    try:
+        PLOTS_PATH.mkdir(parents=True, exist_ok=True)
+        plot_model(
+            model,
+            to_file=PLOTS_PATH / "model.png",
+            show_shapes=False,
+            show_layer_names=True,
+            rankdir="TB",
+            expand_nested=True,
+            dpi=96,
+        )
+    except:
+        print(
+            "Failed saving plot of the network architecture, Graphviz must be installed to do that."
+        )
 
 if __name__ == "__main__":
 
