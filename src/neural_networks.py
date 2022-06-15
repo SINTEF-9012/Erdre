@@ -22,11 +22,11 @@ tfpl = tfp.layers
 tfd = tfp.distributions
 
 import edward2 as ed
-from cyclemoid_pytorch.easteregg import CycleMoid
+# from cyclemoid_pytorch.easteregg import CycleMoid
 from edward2.tensorflow import constraints, initializers, random_variable, regularizers
 from edward2.tensorflow.layers import utils
 
-tf.keras.utils.get_custom_objects()["cyclemoid"] = CycleMoid
+# tf.keras.utils.get_custom_objects()["cyclemoid"] = CycleMoid
 
 
 def cnn(
