@@ -94,4 +94,6 @@ def sequentialize(dir_path):
 
 if __name__ == "__main__":
 
+    np.random.seed(2029)
+
     sequentialize(sys.argv[1])

@@ -16,17 +16,52 @@ from pathlib import Path
 # PARAMETERS
 
 # Deep learning methods
-DL_METHODS = ["dnn", "dnn_simple", "cnn", "lstm", "bcnn", "brnn"]
+DL_METHODS = ["dnn", "cnn", "rnn", "bcnn", "brnn"]
 
 # Non-deep learning methods
+<<<<<<< HEAD
 NON_DL_METHODS = ["dt", "rf", "xgboost", "explainableboosting", "lda", "qda", "svm"]
+=======
+NON_DL_METHODS = [
+    "dt",
+    "rf",
+    "xgboost",
+    "lda",
+    "qda",
+    "svm",
+    "linearregression",
+    "ridgeregression",
+    "sgd",
+    "kneighbors",
+    "gb",
+    "gradientboosting",
+]
+>>>>>>> master
 
 # Learning methods that can process sequences
-SEQUENCE_LEARNING_METHODS = ["cnn", "lstm", "bcnn", "brnn"]
+SEQUENCE_LEARNING_METHODS = ["cnn", "rnn", "bcnn", "brnn"]
 
 # Learning methods that cannot process sequences
+<<<<<<< HEAD
 NON_SEQUENCE_LEARNING_METHODS = ["dnn", "dnn_simple", "dt", "rf", "xgboost",
         "explainableboosting", "lda", "qda", "svm"]
+=======
+NON_SEQUENCE_LEARNING_METHODS = [
+    "dnn",
+    "dt",
+    "rf",
+    "xgboost",
+    "lda",
+    "qda",
+    "svm",
+    "linearregression",
+    "ridgeregression",
+    "sgd",
+    "kneighbors",
+    "gb",
+    "gradientboosting",
+]
+>>>>>>> master
 
 
 # PATHS
@@ -51,6 +86,9 @@ INPUT_FEATURES_PATH = FEATURES_PATH / "input_columns.csv"
 
 OUTPUT_FEATURES_PATH = FEATURES_PATH / "output_columns.csv"
 """Path to file containing output features."""
+
+REMOVABLE_FEATURES = FEATURES_PATH / "removable_features.csv"
+"""Path to file containing removable features."""
 
 DATA_PATH = ASSETS_PATH / "data"
 """Path to data."""

@@ -3,7 +3,8 @@
 ## 1. Installation
 
 
-Erdre requires a working installation of Python3.8.
+Erdre requires a working installation of Python3.8. 
+These instructions are specifically for Linux operating systems or Windows Subsystem for Linux (WSL).
 
 Clone this repository:
 
@@ -17,14 +18,17 @@ Enter the cloned repository:
 cd Erdre/
 ```
 
-
-You can install the required modules by creating a virtual environment and
-install the `requirements.txt`-file (run these commands from the main folder):
+Create a virtual environment (optional):
 
 ```
 mkdir venv
 python3 -m venv venv
 source venv/bin/activate
+```
+
+Install the requirements:
+
+```
 pip3 install -r requirements.txt
 ```
 

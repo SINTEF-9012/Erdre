@@ -72,12 +72,31 @@ sequentialize:
     future_predict: False
 
 train:
+    seed: 2020
     learning_method: dnn
+    hyperparameter_tuning: False
+
+    # Parameters for deep learning (dnn, cnn, lstm etc):
     n_epochs: 10
-    batch_size: 256
-    kernel_size: 5
     early_stopping: True
     patience: 20
+    activation_function: relu
+    batch_size: 256
+    n_layers: 2
+    n_neurons: [16, 16]
+    dropout: 0.1
+
+    # Parameters for cnn and rnn
+    n_flattened_layers: 1
+    n_flattened_nodes: 16
+
+    # Parameters for cnn:
+    kernel_size: 5
+    maxpooling: False
+    maxpooling_size: 4
+
+    # Parameters for rnn:
+    unit_type: LSTM
 
 evaluate:
     show_inputs: True

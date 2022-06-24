@@ -54,8 +54,7 @@ class VirtualSensor:
         """
 
         if type(params_file) == dict:
-            yaml.dump(params_file, open("params.yaml", "w"),
-                    allow_unicode=True)
+            yaml.dump(params_file, open("params.yaml", "w"), allow_unicode=True)
             self.params_file = "params.yaml"
         else:
             self.params_file = params_file
@@ -111,10 +110,10 @@ class VirtualSensor:
         window_size = params["sequentialize"]["window_size"]
         overlap = params["sequentialize"]["overlap"]
 
-        self._check_features_existence(inference_df)
-
         df = clean(inference_df=inference_df)
         df = featurize(inference=True, inference_df=df)
+
+        self._check_features_existence(df)
 
         X = np.array(df)
 
@@ -125,6 +124,9 @@ class VirtualSensor:
             X = input_scaler.transform(X)
 
         X = split_X_sequences(X, window_size, overlap=overlap)
+
+        if learning_method in NON_SEQUENCE_LEARNING_METHODS:
+            X = flatten_sequentialized(X)
 
         if learning_method in NON_DL_METHODS:
             model = load(MODELS_FILE_PATH)
@@ -154,9 +156,11 @@ class VirtualSensor:
 
         """
 
-        input_features = pd.read_csv(self.input_features_file)
+        input_features = pd.read_csv(self.input_features_file, index_col=0)
+        print(input_features)
+        print(inference_df.columns)
 
-        for feature in input_features:
+        for feature in input_features["0"]:
             assert (
                 feature in inference_df.columns
             ), f"Input data does not contain {feature}, which is required to run virtual sensor."

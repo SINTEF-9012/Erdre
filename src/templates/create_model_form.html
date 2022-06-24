@@ -33,12 +33,12 @@
                 <label for="train_split">Training/test set split ratio: <span id="train_split_value"></span></label>
                 <input type="range" min="1" max="9" value="7" class="slider" name="train_split" id="train_split">
 
-                <input type="submit" onclick="loading()"/>
+                <input type="submit" value="Create virtual sensor" onclick="loading()"/>
             </form>
             <form action="create_model" method="POST" enctype="multipart/form-data">
                 <h4>(B) Upload parameter file here:</h4>
                 <input type="file" name="file"/>
-                <input type="submit" onclick="loading()"/>
+                <input type="submit" value="Create virtual sensor" onclick="loading()"/>
             </form>
             <div id=loaderContainer>
                 <div id=loader></div>

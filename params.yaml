@@ -1,8 +1,11 @@
 profile:
-    dataset: cnc_milling_with_toolwear
+    dataset: broaching_with_toolwear
 
 clean:
-    target: S1_OutputPower
+    # target: fas_category
+    # target: Accel_Severity_Acc1_Range1
+    # target: S1_OutputPower
+    target: tool_wear
     classification: False
     onehot_encode_target: False
     combine_files: False
@@ -13,8 +16,16 @@ clean:
 featurize:
     # If empty, all input variables are used
     variables_to_include:
-        - X1_CommandPosition
-        - Y1_CommandPosition
+        - acc1_x
+        - acc1_y
+        - acc1_z
+        - acc2_x
+        - acc2_y
+        - acc2_z
+        # - Accel_Severity_Acc2_Range1
+        # - X1_CommandPosition
+        # - Y1_CommandPosition
+        # - Z1_CommandPosition
 
     # By setting this to True, the add_-options below are overrided.
     use_all_engineered_features_on_all_variables: True
@@ -44,21 +55,31 @@ featurize:
         # - variable1
     add_peak_frequency:
         # - variable1
+<<<<<<< HEAD
     rolling_window_size_sum: 20
     rolling_window_size_mean: 20
     rolling_window_size_max_min: 20
     rolling_window_size_standard_deviation: 20
+=======
+    rolling_window_size_sum: 128000
+    rolling_window_size_mean: 128000
+    rolling_window_size_max_min: 128000
+    rolling_window_size_standard_deviation: 128000
+>>>>>>> master
 
     # List features here to remove the raw variables after engineering features
     # from them
     remove_features:
+<<<<<<< HEAD
         - X1_CommandPosition
         - Y1_CommandPosition
+=======
+>>>>>>> master
         # - variable1
     target_min_correlation_threshold: 0.0
 
 split:
-    train_split: 0.5
+    train_split: 0.7
     shuffle_files: False
     calibrate_split: 0.0
 
@@ -74,12 +95,40 @@ sequentialize:
     future_predict: False
 
 train:
+<<<<<<< HEAD
     learning_method: lstm
     n_epochs: 200
     batch_size: 256
     kernel_size: 5
     early_stopping: False
     patience: 50
+=======
+    seed: 2022
+    learning_method: xgboost
+    hyperparameter_tuning: False
+
+    # Parameters for deep learning (dnn, cnn, lstm etc):
+    n_epochs: 1000
+    early_stopping: True
+    patience: 20
+    activation_function: relu
+    batch_size: 256
+    n_layers: 1
+    n_neurons: 16
+    dropout: 0.1
+
+    # Parameters for cnn and rnn
+    n_flattened_layers: 1
+    n_flattened_nodes: 16
+
+    # Parameters for cnn:
+    kernel_size: 5
+    maxpooling: False
+    maxpooling_size: 4
+
+    # Parameters for rnn:
+    unit_type: LSTM
+>>>>>>> master
 
 evaluate:
     show_inputs: False

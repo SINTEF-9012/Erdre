@@ -10,6 +10,8 @@ Created:
     2020-09-16  
 
 """
+import os
+import shutil
 import sys
 
 import matplotlib.pyplot as plt
@@ -19,21 +21,38 @@ import xgboost as xgb
 import yaml
 from interpret.glassbox import ExplainableBoostingClassifier
 from joblib import dump
+from keras_tuner import HyperParameters
+from keras_tuner.tuners import BayesianOptimization, Hyperband, RandomSearch
 from sklearn.discriminant_analysis import (
     LinearDiscriminantAnalysis,
     QuadraticDiscriminantAnalysis,
 )
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.ensemble import (
+    GradientBoostingClassifier,
+    GradientBoostingRegressor,
+    RandomForestClassifier,
+    RandomForestRegressor,
+)
+from sklearn.linear_model import (
+    LinearRegression,
+    SGDClassifier,
+    SGDRegressor,
+    ridge_regression,
+)
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, roc_auc_score
 from sklearn.model_selection import RandomizedSearchCV
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.keras.utils import plot_model
+# from tensorflow.keras.wrappers.scikit_learn import KerasRegressor, KerasClassifier
+# import tensorflow.keras.wrappers.scikit_learn as tf_sklearn
 
 import neural_networks as nn
 from config import (
     DATA_PATH,
+    DL_METHODS,
     MODELS_FILE_PATH,
     MODELS_PATH,
     NON_DL_METHODS,
@@ -55,9 +74,7 @@ def train(filepath):
 
     # Load parameters
     params = yaml.safe_load(open("params.yaml"))["train"]
-    learning_method = params["learning_method"]
-    use_early_stopping = params["early_stopping"]
-    patience = params["patience"]
+    learning_method = params["learning_method"].lower()
     target_size = yaml.safe_load(open("params.yaml"))["sequentialize"]["target_size"]
     classification = yaml.safe_load(open("params.yaml"))["clean"]["classification"]
     onehot_encode_target = yaml.safe_load(open("params.yaml"))["clean"][
@@ -77,12 +94,10 @@ def train(filepath):
     y_train = train_data["y"]
 
     n_features = X_train.shape[-1]
-
     hist_size = X_train.shape[-2]
     target_size = y_train.shape[-1]
 
     if classification:
-        # if len(np.unique(y_train, axis=-1)) > 2:
         if onehot_encode_target:
             output_activation = "softmax"
             loss = "categorical_crossentropy"
@@ -99,45 +114,96 @@ def train(filepath):
         metrics = "mse"
         monitor_metric = "loss"
 
-
-
     # Build model
-    if learning_method == "cnn":
+    if learning_method in DL_METHODS and params["hyperparameter_tuning"]:
+
+        # In order to perform model tuning, any old model_tuning results must
+        # be deleted.
+        if os.path.exists("model_tuning"):
+            shutil.rmtree("model_tuning")
+
+        if learning_method == "lstm":
+            hypermodel = nn.LSTMHyperModel(
+                hist_size, n_features, loss=loss, metrics=metrics
+            )
+        elif learning_method == "cnn":
+            hypermodel = nn.CNNHyperModel(
+                hist_size, n_features, loss=loss, metrics=metrics
+            )
+        else:
+            hypermodel = nn.SequentialHyperModel(n_features, loss=loss, metrics=metrics)
+
+        hypermodel.build(HyperParameters())
+        tuner = BayesianOptimization(
+            hypermodel,
+            objective="val_loss",
+            directory="model_tuning",
+        )
+        tuner.search_space_summary()
+        tuner.search(
+            X_train,
+            y_train,
+            epochs=200,
+            batch_size=params["batch_size"],
+            validation_split=0.2,
+        )
+        tuner.results_summary()
+
+        model = tuner.get_best_models()[0]
+
+    elif learning_method.startswith("dnn"):
+        build_model = getattr(nn, learning_method)
+        model = build_model(
+            n_features,
+            output_length=output_length,
+            activation_function=params["activation_function"],
+            output_activation=output_activation,
+            n_layers=params["n_layers"],
+            n_nodes=params["n_neurons"],
+            loss=loss,
+            metrics=metrics,
+            dropout=params["dropout"],
+            seed=params["seed"]
+        )
+    elif learning_method.startswith("cnn"):
         hist_size = X_train.shape[-2]
-        model = nn.cnn(
+        build_model = getattr(nn, learning_method)
+        model = build_model(
             hist_size,
             n_features,
             output_length=output_length,
             kernel_size=params["kernel_size"],
+            activation_function=params["activation_function"],
             output_activation=output_activation,
             loss=loss,
             metrics=metrics,
+            n_layers=params["n_layers"],
+            n_filters=params["n_neurons"],
+            maxpooling=params["maxpooling"],
+            maxpooling_size=params["maxpooling_size"],
+            dropout=params["dropout"],
+            n_dense_layers=params["n_flattened_layers"],
+            n_nodes=params["n_flattened_nodes"],
+            seed=params["seed"]
         )
-    elif learning_method == "dnn":
-        model = nn.dnn(
-            n_features,
-            output_length=output_length,
-            output_activation=output_activation,
-            loss=loss,
-            metrics=metrics,
-        )
-    elif learning_method == "dnn_simple":
-        model = nn.dnn_simple(
-            n_features,
-            output_length=output_length,
-            output_activation=output_activation,
-            loss=loss,
-            metrics=metrics,
-        )
-    elif learning_method == "lstm":
+    elif learning_method.startswith("rnn"):
         hist_size = X_train.shape[-2]
-        model = nn.lstm(
+        build_model = getattr(nn, learning_method)
+        model = build_model(
             hist_size,
             n_features,
-            n_steps_out=output_length,
+            output_length=output_length,
+            unit_type=params["unit_type"].lower(),
+            activation_function=params["activation_function"],
             output_activation=output_activation,
             loss=loss,
             metrics=metrics,
+            n_layers=params["n_layers"],
+            n_units=params["n_neurons"],
+            dropout=params["dropout"],
+            n_dense_layers=params["n_flattened_layers"],
+            n_nodes=params["n_flattened_nodes"],
+            seed=params["seed"]
         )
     elif learning_method == "dt":
         if classification:
@@ -149,16 +215,72 @@ def train(filepath):
             model = RandomForestClassifier()
         else:
             model = RandomForestRegressor()
+        if params["hyperparameter_tuning"]:
+            model = RandomizedSearchCV(
+                model,
+                {
+                    "max_depth": [2, 4, 6, 8],
+                    "n_estimators": [50, 100, 200, 400, 800, 1000],
+                    "min_samples_split": [2, 4, 6, 8, 10],
+                    "min_samples_leaf": [1, 3, 5],
+                },
+                verbose=2,
+            )
+    elif learning_method == "kneighbors" or learning_method == "kn":
+        if classification:
+            model = KNeighborsClassifier()
+        else:
+            model = KNeighborsRegressor()
+        if params["hyperparameter_tuning"]:
+            model = RandomizedSearchCV(
+                model,
+                {
+                    "n_neighbors": [2, 4, 5, 6, 10, 15, 20, 30],
+                    "weights": ["uniform", "distance"],
+                    "leaf_size": [10, 30, 50, 80, 100],
+                    "algorithm": ["ball_tree", "kd_tree", "brute"],
+                },
+                verbose=2,
+            )
+    elif learning_method == "gradientboosting" or learning_method == "gb":
+        if classification:
+            model = GradientBoostingClassifier()
+        else:
+            model = GradientBoostingRegressor()
     elif learning_method == "xgboost":
         if classification:
             model = xgb.XGBClassifier()
         else:
             model = xgb.XGBRegressor()
+        if params["hyperparameter_tuning"]:
+            model = RandomizedSearchCV(
+                model,
+                {
+                    "max_depth": [2, 4, 6, 8],
+                    "n_estimators": [50, 100, 200, 400, 800, 1000],
+                    "learning_rate": [0.3, 0.1, 0.001, 0.0001],
+                },
+                verbose=2,
+            )
     elif learning_method.lower() == "explainableboosting":
         if classification:
             model = ExplainableBoostingClassifier(max_rounds=2)
         else:
             model = ExplainableBoostingRegressor()
+    elif learning_method == "linearregression":
+        if classification:
+            raise ValueError(
+                f"Learning method {learning_method} only works with regression."
+            )
+        else:
+            model = LinearRegression()
+    elif learning_method == "ridgeregression":
+        if classification:
+            raise ValueError(
+                f"Learning method {learning_method} only works with regression."
+            )
+        else:
+            model = ridge_regression()
     elif learning_method == "lda":
         if classification:
             model = LinearDiscriminantAnalysis()
@@ -166,6 +288,11 @@ def train(filepath):
             raise ValueError(
                 f"Learning method {learning_method} only works with classification."
             )
+    elif learning_method == "sgd":
+        if classification:
+            model = SGDClassifier()
+        else:
+            model = SGDRegressor()
     elif learning_method == "qda":
         if classification:
             model = QuadraticDiscriminantAnalysis()
@@ -178,21 +305,41 @@ def train(filepath):
             model = SVC()
         else:
             model = SVR()
-    elif learning_method == 'brnn':
-        model = nn.brnn(data_size=X_train.shape[0],
-                        window_size=X_train.shape[1],
-                        feature_size=X_train.shape[2],
-                        batch_size=params["batch_size"],
-                        hidden_size=10)  # TODO: Make this into a parameter
-    elif learning_method == 'bcnn':
-        model = nn.bcnn(data_size=X_train.shape[0],
-                        window_size=X_train.shape[1],
-                        feature_size=X_train.shape[2],
-                        batch_size=params["batch_size"],
-                        kernel_size=params["kernel_size"],
-                        n_steps_out=target_size,
-                        output_activation=output_activation,
-                        classification=classification)
+        if params["hyperparameter_tuning"]:
+            model = RandomizedSearchCV(
+                model,
+                {
+                    "kernel": ["linear", "poly", "rbf"],
+                    "degree": [1, 3, 5],
+                    "max_iter": [1, 5, 10],
+                },
+            )
+    elif learning_method == "brnn":
+        model = nn.brnn(
+            data_size=X_train.shape[0],
+            window_size=X_train.shape[1],
+            feature_size=X_train.shape[2],
+            batch_size=params["batch_size"],
+            hidden_size=10,
+        )  # TODO: Make this into a parameter
+    elif learning_method == "bcnn":
+        model = nn.bcnn(
+            data_size=X_train.shape[0],
+            window_size=X_train.shape[1],
+            feature_size=X_train.shape[2],
+            kernel_size=params["kernel_size"],
+            batch_size=params["batch_size"],
+            n_steps_out=output_length,
+            output_activation=output_activation,
+            classification=classification,
+        )
+        # model = nn.bcnn_edward(data_size=X_train.shape[0],
+        #                 window_size=X_train.shape[1],
+        #                 feature_size=X_train.shape[2],
+        #                 kernel_size=params["kernel_size"],
+        #                 n_steps_out=output_length,
+        #                 output_activation=output_activation,
+        #                 classification=classification)
     else:
         raise NotImplementedError(f"Learning method {learning_method} not implemented.")
 
@@ -203,35 +350,31 @@ def train(filepath):
         dump(model, MODELS_FILE_PATH)
     else:
         print(model.summary())
+        plot_neural_network_architecture(model)
 
-        # Save a plot of the model. Will not work if Graphviz is not installed, and
-        # is therefore skipped if an error is thrown.
-        try:
-            PLOTS_PATH.mkdir(parents=True, exist_ok=True)
-            plot_model(
-                model,
-                to_file=PLOTS_PATH / "model.png",
-                show_shapes=False,
-                show_layer_names=True,
-                rankdir="TB",
-                expand_nested=True,
-                dpi=96,
+        # if params["cross_validation"]:
+        #     if classification:
+        #         keras_wrapper = getattr(tf_sklearn, "KerasClassifier")
+        #     else:
+        #         keras_wrapper = getattr(tf_sklearn, "KerasRegressor")
+
+        #     estimator = keras_wrapper(build_fn=buildmodel, epochs=params["epochs"], batch_size=params["batch_size"], verbose=0)
+        #     kfold= RepeatedKFold(n_splits=5, n_repeats=100)
+        #     results= cross_val_score(estimator, x, y, cv=kfold, n_jobs=2)  # 2 cpus
+        #     results.mean()  # Mean MSE
+
+        if params["early_stopping"]:
+            early_stopping = EarlyStopping(
+                monitor="val_" + monitor_metric,
+                patience=params["patience"],
+                verbose=4,
+                restore_best_weights=True,
             )
-        except:
-            print(
-                "Failed saving plot of the network architecture, Graphviz must be installed to do that."
+
+            model_checkpoint = ModelCheckpoint(
+                MODELS_FILE_PATH, monitor="val_" + monitor_metric  # , save_best_only=True
             )
 
-        early_stopping = EarlyStopping(
-            monitor="val_" + monitor_metric, patience=patience, verbose=4,
-            restore_best_weights=True
-        )
-
-        model_checkpoint = ModelCheckpoint(
-            MODELS_FILE_PATH, monitor="val_" + monitor_metric #, save_best_only=True
-        )
-
-        if use_early_stopping:
             # Train model for 10 epochs before adding early stopping
             history = model.fit(
                 X_train,
@@ -287,9 +430,29 @@ def train(filepath):
         plt.legend()
         plt.savefig(TRAININGLOSS_PLOT_PATH)
 
+def plot_neural_network_architecture(model):
+    """Save a plot of the model. Will not work if Graphviz is not installed,
+    and is therefore skipped if an error is thrown.
+
+    """
+    try:
+        PLOTS_PATH.mkdir(parents=True, exist_ok=True)
+        plot_model(
+            model,
+            to_file=PLOTS_PATH / "model.png",
+            show_shapes=False,
+            show_layer_names=True,
+            rankdir="TB",
+            expand_nested=True,
+            dpi=96,
+        )
+    except:
+        print(
+            "Failed saving plot of the network architecture, Graphviz must be installed to do that."
+        )
 
 if __name__ == "__main__":
 
-    np.random.seed(2020)
+    np.random.seed(2021)
 
     train(sys.argv[1])
