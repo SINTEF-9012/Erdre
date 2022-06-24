@@ -55,26 +55,14 @@ featurize:
         # - variable1
     add_peak_frequency:
         # - variable1
-<<<<<<< HEAD
-    rolling_window_size_sum: 20
-    rolling_window_size_mean: 20
-    rolling_window_size_max_min: 20
-    rolling_window_size_standard_deviation: 20
-=======
     rolling_window_size_sum: 128000
     rolling_window_size_mean: 128000
     rolling_window_size_max_min: 128000
     rolling_window_size_standard_deviation: 128000
->>>>>>> master
 
     # List features here to remove the raw variables after engineering features
     # from them
     remove_features:
-<<<<<<< HEAD
-        - X1_CommandPosition
-        - Y1_CommandPosition
-=======
->>>>>>> master
         # - variable1
     target_min_correlation_threshold: 0.0
 
@@ -95,14 +83,6 @@ sequentialize:
     future_predict: False
 
 train:
-<<<<<<< HEAD
-    learning_method: lstm
-    n_epochs: 200
-    batch_size: 256
-    kernel_size: 5
-    early_stopping: False
-    patience: 50
-=======
     seed: 2022
     learning_method: xgboost
     hyperparameter_tuning: False
@@ -128,7 +108,6 @@ train:
 
     # Parameters for rnn:
     unit_type: LSTM
->>>>>>> master
 
 evaluate:
     show_inputs: False
