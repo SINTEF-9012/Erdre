@@ -164,6 +164,13 @@ def compute_rolling_features(df, params, ignore_columns=None):
     """
 
     columns = [col for col in df.columns if col not in ignore_columns]
+    
+    if isinstance(params["featurize"]["row_abs_diff"], list):
+        for var in params["featurize"]["row_abs_diff"]:
+            var0, var1 = var[0], var[1]
+            df[f"diff_{var0}_{[var1]}"] = abs(df[var0] - df[var1])
+            #print(df[f"diff_{var0}_{[var1]}"])
+            
 
     if params["featurize"]["use_all_engineered_features_on_all_variables"]:
         features_to_add = [p for p in params["featurize"] if p.startswith("add_")]

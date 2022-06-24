@@ -1,9 +1,15 @@
 profile:
+    # dataset: broaching_with_toolwear
     dataset: cnc_milling_with_toolwear
 
 clean:
-    target: S1_OutputPower
-    classification: False
+    # target: fas_category
+    # target: Accel_Severity_Acc1_Range1
+    # target: S1_OutputPower
+    # target: tool_wear
+    target: tool_condition
+
+    classification: True
     onehot_encode_target: False
     combine_files: False
     percentage_zeros_threshold: 1.0
@@ -16,10 +22,25 @@ featurize:
         # - variable1
         # - variable2
         - X1_CommandPosition
+        - X1_ActualPosition
         - Y1_CommandPosition
+        - Y1_ActualPosition
         - Z1_CommandPosition
+        - Z1_ActualPosition
+        - S1_ActualPosition
+        - S1_CommandPosition
 
+    # Row based engineered features
+    # Features listed must be included above (if not empty), but can be removed after if desired under remove_features
+    row_abs_diff:
+        - [X1_ActualPosition, X1_CommandPosition]
+        - [Y1_ActualPosition, Y1_CommandPosition]
+        - [Z1_ActualPosition, Z1_CommandPosition]
+        - [S1_ActualPosition, S1_CommandPosition]
+
+    # Column based engineered features
     # By setting this to True, the add_-options below are overrided.
+    # use_all_engineered_features_on_all_variables: True
     use_all_engineered_features_on_all_variables: False
 
     # List the variables below each add_* to add engineered feature
@@ -68,7 +89,7 @@ scale:
     output:
 
 sequentialize:
-    window_size: 5
+    window_size: 25
     overlap: 0
     target_size: 1
     shuffle_samples: False
@@ -76,21 +97,21 @@ sequentialize:
 
 train:
     seed: 2020
-    learning_method: dnn
+    learning_method: xgboost
     hyperparameter_tuning: False
 
     # Parameters for deep learning (dnn, cnn, rnn):
-    n_epochs: 100
-    early_stopping: True
+    n_epochs: 1000
+    early_stopping: False
     patience: 20
     activation_function: relu
     batch_size: 256
-    n_layers: 3
-    n_neurons: 16
-    dropout: 0.2
+    n_layers: 2
+    n_neurons: 100
+    dropout: 0.1
 
     # Parameters for cnn and rnn
-    n_flattened_layers: 1
+    n_flattened_layers: 2
     n_flattened_nodes: 16
 
     # Parameters for cnn:
@@ -99,7 +120,7 @@ train:
     maxpooling_size: 4
 
     # Parameters for rnn:
-    unit_type: rnn
+    unit_type: LSTM
 
 evaluate:
-    show_inputs: True
+    show_inputs: False
