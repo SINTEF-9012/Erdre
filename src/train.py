@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 import yaml
-from interpret.glassbox import ExplainableBoostingClassifier
+from interpret.glassbox import ExplainableBoostingClassifier, ExplainableBoostingRegressor
 from joblib import dump
 from keras_tuner import HyperParameters
 from keras_tuner.tuners import BayesianOptimization, Hyperband, RandomSearch

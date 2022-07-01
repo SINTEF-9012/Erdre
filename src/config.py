@@ -19,12 +19,10 @@ from pathlib import Path
 DL_METHODS = ["dnn", "cnn", "rnn", "bcnn", "brnn"]
 
 # Non-deep learning methods
-<<<<<<< HEAD
-NON_DL_METHODS = ["dt", "rf", "xgboost", "explainableboosting", "lda", "qda", "svm"]
-=======
 NON_DL_METHODS = [
     "dt",
     "rf",
+    "explainableboosting",
     "xgboost",
     "lda",
     "qda",
@@ -36,21 +34,17 @@ NON_DL_METHODS = [
     "gb",
     "gradientboosting",
 ]
->>>>>>> master
 
 # Learning methods that can process sequences
 SEQUENCE_LEARNING_METHODS = ["cnn", "rnn", "bcnn", "brnn"]
 
 # Learning methods that cannot process sequences
-<<<<<<< HEAD
-NON_SEQUENCE_LEARNING_METHODS = ["dnn", "dnn_simple", "dt", "rf", "xgboost",
-        "explainableboosting", "lda", "qda", "svm"]
-=======
 NON_SEQUENCE_LEARNING_METHODS = [
     "dnn",
     "dt",
     "rf",
     "xgboost",
+    "explainableboosting",
     "lda",
     "qda",
     "svm",
@@ -61,7 +55,6 @@ NON_SEQUENCE_LEARNING_METHODS = [
     "gb",
     "gradientboosting",
 ]
->>>>>>> master
 
 
 # PATHS

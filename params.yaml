@@ -1,12 +1,15 @@
 profile:
-    dataset: broaching_with_toolwear
+    # dataset: broaching_with_toolwear
+    dataset: cnc_milling_with_toolwear
 
 clean:
     # target: fas_category
     # target: Accel_Severity_Acc1_Range1
     # target: S1_OutputPower
-    target: tool_wear
-    classification: False
+    # target: tool_wear
+    target: tool_condition
+
+    classification: True
     onehot_encode_target: False
     combine_files: False
     percentage_zeros_threshold: 1.0
@@ -16,18 +19,20 @@ clean:
 featurize:
     # If empty, all input variables are used
     variables_to_include:
-        - acc1_x
-        - acc1_y
-        - acc1_z
-        - acc2_x
-        - acc2_y
-        - acc2_z
+        # - acc1_x
+        # - acc1_y
+        # - acc1_z
+        # - acc2_x
+        # - acc2_y
+        # - acc2_z
         # - Accel_Severity_Acc2_Range1
-        # - X1_CommandPosition
-        # - Y1_CommandPosition
-        # - Z1_CommandPosition
+        - X1_ActualPosition
+        - Y1_ActualPosition
+        - Z1_ActualPosition
+        - S1_OutputPower
 
     # By setting this to True, the add_-options below are overrided.
+    # use_all_engineered_features_on_all_variables: True
     use_all_engineered_features_on_all_variables: True
 
     # List the variables below each add_* to add engineered feature
@@ -55,11 +60,14 @@ featurize:
         # - variable1
     add_peak_frequency:
         # - variable1
-    rolling_window_size_sum: 128000
-    rolling_window_size_mean: 128000
-    rolling_window_size_max_min: 128000
-    rolling_window_size_standard_deviation: 128000
-
+    # rolling_window_size_sum: 128000
+    # rolling_window_size_mean: 128000
+    # rolling_window_size_max_min: 128000
+    # rolling_window_size_standard_deviation: 128000
+    rolling_window_size_sum: 400
+    rolling_window_size_mean: 400
+    rolling_window_size_max_min: 400
+    rolling_window_size_standard_deviation: 400
     # List features here to remove the raw variables after engineering features
     # from them
     remove_features:
@@ -67,8 +75,8 @@ featurize:
     target_min_correlation_threshold: 0.0
 
 split:
-    train_split: 0.7
-    shuffle_files: False
+    train_split: 0.5
+    shuffle_files: True
     calibrate_split: 0.0
 
 scale:
@@ -89,16 +97,16 @@ train:
 
     # Parameters for deep learning (dnn, cnn, lstm etc):
     n_epochs: 1000
-    early_stopping: True
+    early_stopping: False
     patience: 20
     activation_function: relu
     batch_size: 256
-    n_layers: 1
-    n_neurons: 16
+    n_layers: 2
+    n_neurons: 100
     dropout: 0.1
 
     # Parameters for cnn and rnn
-    n_flattened_layers: 1
+    n_flattened_layers: 2
     n_flattened_nodes: 16
 
     # Parameters for cnn:
