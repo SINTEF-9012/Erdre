@@ -37,7 +37,12 @@ from sklearn.linear_model import (
     LinearRegression,
     SGDClassifier,
     SGDRegressor,
-    ridge_regression,
+    Ridge,
+    Lasso,
+    Lars,
+    BayesianRidge,
+    ARDRegression,
+    ElasticNet,
 )
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, roc_auc_score
 from sklearn.model_selection import RandomizedSearchCV
@@ -280,7 +285,42 @@ def train(filepath):
                 f"Learning method {learning_method} only works with regression."
             )
         else:
-            model = ridge_regression()
+            model = Ridge()
+    elif learning_method == "lasso":
+        if classification:
+            raise ValueError(
+                f"Learning method {learning_method} only works with regression."
+            )
+        else:
+            model = Lasso()
+    elif learning_method == "lars":
+        if classification:
+            raise ValueError(
+                f"Learning method {learning_method} only works with regression."
+            )
+        else:
+            model = Lars()
+    elif learning_method == "bayesianridge":
+        if classification:
+            raise ValueError(
+                f"Learning method {learning_method} only works with regression."
+            )
+        else:
+            model = BayesianRidge()
+    elif learning_method == "ardregression":
+        if classification:
+            raise ValueError(
+                f"Learning method {learning_method} only works with regression."
+            )
+        else:
+            model = ARDRegression()
+    elif learning_method == "elasticnet":
+        if classification:
+            raise ValueError(
+                f"Learning method {learning_method} only works with regression."
+            )
+        else:
+            model = ElasticNet()
     elif learning_method == "lda":
         if classification:
             model = LinearDiscriminantAnalysis()
