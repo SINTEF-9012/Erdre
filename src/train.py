@@ -38,6 +38,7 @@ from sklearn.linear_model import (
     SGDClassifier,
     SGDRegressor,
     Ridge,
+    RidgeCV,
     Lasso,
     Lars,
     BayesianRidge,
