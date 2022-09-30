@@ -68,11 +68,14 @@ featurize:
         # - variable1
     add_peak_frequency:
         # - variable1
-    rolling_window_size_sum: 10
-    rolling_window_size_mean: 10
-    rolling_window_size_max_min: 10
-    rolling_window_size_standard_deviation: 10
-
+    # rolling_window_size_sum: 128000
+    # rolling_window_size_mean: 128000
+    # rolling_window_size_max_min: 128000
+    # rolling_window_size_standard_deviation: 128000
+    rolling_window_size_sum: 400
+    rolling_window_size_mean: 400
+    rolling_window_size_max_min: 400
+    rolling_window_size_standard_deviation: 400
     # List features here to remove the raw variables after engineering features
     # from them
     remove_features:
@@ -81,7 +84,7 @@ featurize:
 
 split:
     train_split: 0.5
-    shuffle_files: False
+    shuffle_files: True
     calibrate_split: 0.0
 
 scale:
@@ -92,15 +95,15 @@ sequentialize:
     window_size: 25
     overlap: 0
     target_size: 1
-    shuffle_samples: False
+    shuffle_samples: True
     future_predict: False
 
 train:
-    seed: 2020
+    seed: 2022
     learning_method: xgboost
     hyperparameter_tuning: False
 
-    # Parameters for deep learning (dnn, cnn, rnn):
+    # Parameters for deep learning (dnn, cnn, lstm etc):
     n_epochs: 1000
     early_stopping: False
     patience: 20

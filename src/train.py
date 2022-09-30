@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 import yaml
+from interpret.glassbox import ExplainableBoostingClassifier, ExplainableBoostingRegressor
 from joblib import dump
 from keras_tuner import HyperParameters
 from keras_tuner.tuners import BayesianOptimization, Hyperband, RandomSearch
@@ -36,7 +37,13 @@ from sklearn.linear_model import (
     LinearRegression,
     SGDClassifier,
     SGDRegressor,
-    ridge_regression,
+    Ridge,
+    RidgeCV,
+    Lasso,
+    Lars,
+    BayesianRidge,
+    ARDRegression,
+    ElasticNet,
 )
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, roc_auc_score
 from sklearn.model_selection import RandomizedSearchCV
@@ -261,6 +268,11 @@ def train(filepath):
                 },
                 verbose=2,
             )
+    elif learning_method.lower() == "explainableboosting":
+        if classification:
+            model = ExplainableBoostingClassifier(max_rounds=2)
+        else:
+            model = ExplainableBoostingRegressor()
     elif learning_method == "linearregression":
         if classification:
             raise ValueError(
@@ -274,7 +286,42 @@ def train(filepath):
                 f"Learning method {learning_method} only works with regression."
             )
         else:
-            model = ridge_regression()
+            model = Ridge()
+    elif learning_method == "lasso":
+        if classification:
+            raise ValueError(
+                f"Learning method {learning_method} only works with regression."
+            )
+        else:
+            model = Lasso()
+    elif learning_method == "lars":
+        if classification:
+            raise ValueError(
+                f"Learning method {learning_method} only works with regression."
+            )
+        else:
+            model = Lars()
+    elif learning_method == "bayesianridge":
+        if classification:
+            raise ValueError(
+                f"Learning method {learning_method} only works with regression."
+            )
+        else:
+            model = BayesianRidge()
+    elif learning_method == "ardregression":
+        if classification:
+            raise ValueError(
+                f"Learning method {learning_method} only works with regression."
+            )
+        else:
+            model = ARDRegression()
+    elif learning_method == "elasticnet":
+        if classification:
+            raise ValueError(
+                f"Learning method {learning_method} only works with regression."
+            )
+        else:
+            model = ElasticNet()
     elif learning_method == "lda":
         if classification:
             model = LinearDiscriminantAnalysis()
@@ -338,7 +385,9 @@ def train(filepath):
         raise NotImplementedError(f"Learning method {learning_method} not implemented.")
 
     if learning_method in NON_DL_METHODS:
+        print("Fitting model...")
         model.fit(X_train, y_train)
+        print("Done fitting model")
         dump(model, MODELS_FILE_PATH)
     else:
         print(model.summary())
