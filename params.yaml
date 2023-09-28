@@ -1,6 +1,7 @@
 profile:
+    dataset: cnc_milling
     # dataset: broaching_with_toolwear
-    dataset: cnc_milling_with_toolwear
+    # dataset: cnc_milling_with_toolwear
 
 clean:
     # target: fas_category
@@ -26,14 +27,14 @@ featurize:
         # - acc2_y
         # - acc2_z
         # - Accel_Severity_Acc2_Range1
-        - X1_ActualPosition
-        - Y1_ActualPosition
-        - Z1_ActualPosition
-        - S1_OutputPower
+        # - X1_ActualPosition
+        # - Y1_ActualPosition
+        # - Z1_ActualPosition
+        # - S1_OutputPower
 
     # By setting this to True, the add_-options below are overrided.
     # use_all_engineered_features_on_all_variables: True
-    use_all_engineered_features_on_all_variables: True
+    use_all_engineered_features_on_all_variables: False
 
     # List the variables below each add_* to add engineered feature
     add_sum:
@@ -92,7 +93,7 @@ sequentialize:
 
 train:
     seed: 2022
-    learning_method: xgboost
+    learning_method: brnn
     hyperparameter_tuning: False
 
     # Parameters for deep learning (dnn, cnn, lstm etc):
