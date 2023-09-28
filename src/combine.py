@@ -13,12 +13,15 @@ import os
 import sys
 
 import numpy as np
+from codecarbon import track_emissions
 
-from config import DATA_COMBINED_PATH
+from config import config
+from pipelinestage import PipelineStage
 from preprocess_utils import find_files
 
 
-def combine(dir_path):
+@track_emissions(project_name="combine")
+class CombineStage(PipelineStage):
     """Combine data from multiple input files into one dataset.
 
     Args:
@@ -26,48 +29,45 @@ def combine(dir_path):
 
     """
 
-    filepaths = find_files(dir_path, file_extension=".npz")
+    def __init__(self):
+        super().__init__(stage_name="combine")
 
-    DATA_COMBINED_PATH.mkdir(parents=True, exist_ok=True)
+    def run(self):
 
-    train_inputs = []
-    train_outputs = []
-    test_inputs = []
-    test_outputs = []
-    calibrate_inputs = []
-    calibrate_outputs = []
+        filepaths = find_files(config.DATA_SEQUENTIALIZED_PATH, file_extension=".npz")
 
-    for filepath in filepaths:
-        infile = np.load(filepath)
+        train_inputs = []
+        train_outputs = []
+        test_inputs = []
+        test_outputs = []
 
-        if "train" in filepath:
-            train_inputs.append(infile["X"])
-            train_outputs.append(infile["y"])
-        elif "test" in filepath:
-            test_inputs.append(infile["X"])
-            test_outputs.append(infile["y"])
-        elif "calibrate" in filepath:
-            calibrate_inputs.append(infile["X"])
-            calibrate_outputs.append(infile["y"])
+        for filepath in filepaths:
+            infile = np.load(filepath)
 
-    X_train = np.concatenate(train_inputs)
-    y_train = np.concatenate(train_outputs)
-    X_test = np.concatenate(test_inputs)
-    y_test = np.concatenate(test_outputs)
+            X = infile["X"]
+            y = infile["y"]
 
-    if len(calibrate_inputs) > 0:
-        X_calibrate = np.concatenate(calibrate_inputs)
-        y_calibrate = np.concatenate(calibrate_outputs)
+            if X.size == 0 or y.size == 0:
+                print(f"Skipped {filepath} because it is emtpy")
+                continue
 
-    np.savez(DATA_COMBINED_PATH / "train.npz", X=X_train, y=y_train)
-    np.savez(DATA_COMBINED_PATH / "test.npz", X=X_test, y=y_test)
+            if "train" in filepath:
+                train_inputs.append(X)
+                train_outputs.append(y)
+            elif "test" in filepath:
+                test_inputs.append(X)
+                test_outputs.append(y)
 
-    if len(calibrate_inputs) > 0:
-        np.savez(DATA_COMBINED_PATH / "calibrate.npz", X=X_calibrate, y=y_calibrate)
+        X_train = np.concatenate(train_inputs)
+        y_train = np.concatenate(train_outputs)
+        X_test = np.concatenate(test_inputs)
+        y_test = np.concatenate(test_outputs)
 
+        np.savez(config.DATA_COMBINED_PATH / "train.npz", X=X_train, y=y_train)
+        np.savez(config.DATA_COMBINED_PATH / "test.npz", X=X_test, y=y_test)
+
+def main():
+    CombineStage().run()
 
 if __name__ == "__main__":
-
-    np.random.seed(2020)
-
-    combine(sys.argv[1])
+    main()

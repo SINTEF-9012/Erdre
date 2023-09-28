@@ -15,12 +15,15 @@ import sys
 
 import numpy as np
 import yaml
+from codecarbon import track_emissions
 
-from config import DATA_SPLIT_PATH
+from config import config
+from pipelinestage import PipelineStage
 from preprocess_utils import find_files
 
 
-def split(dir_path):
+@track_emissions(project_name="split")
+class SplitStage(PipelineStage):
     """Split data into train and test set.
 
     Training files and test files are saved to different folders.
@@ -30,103 +33,73 @@ def split(dir_path):
 
     """
 
-    with open("params.yaml", "r", encoding="UTF-8") as infile:
-        params = yaml.safe_load(infile)["split"]
+    def __init__(self):
+        super().__init__(stage_name="clean")
 
-    shuffle_files = params["shuffle_files"]
+    def run(self):
 
-    DATA_SPLIT_PATH.mkdir(parents=True, exist_ok=True)
+        filepaths = find_files(config.DATA_FEATURIZED_PATH, file_extension=".npy")
 
-    filepaths = find_files(dir_path, file_extension=".npy")
+        # Handle special case where there is only one data file.
+        if isinstance(filepaths, str) or len(filepaths) == 1:
+            filepath = filepaths[0]
 
-    # Handle special case where there is only one data file.
-    if isinstance(filepaths, str) or len(filepaths) == 1:
-        filepath = filepaths[0]
+            data = np.load(filepath)
 
-        data = np.load(filepath)
+            if self.params.split.shuffle_samples_before_split:
+                permutation = np.random.permutation(data.shape[0])
+                data = np.take(data, permutation, axis=0)
 
-        train_size = int(len(data) * params["train_split"])
+            train_size = int(len(data) * self.params.split.train_split)
 
-        # This is used when using conformal predictors.
-        # It specifies the calibration set size.
-        # Set to 0 in params.yml if no calibration is to be done.
-        calibrate_size = int(len(data) * params["calibrate_split"])
+            data_train = None
+            data_test = None
 
-        data_train = None
-        data_test = None
-        data_calibrate = None
-
-        if params["calibrate_split"] == 0:
             data_train = data[:train_size, :]
             data_test = data[train_size:, :]
-        else:
-            data_train = data[:train_size, :]
-            data_calibrate = data[train_size : train_size + calibrate_size, :]
-            data_test = data[train_size + calibrate_size :, :]
 
-        np.save(
-            DATA_SPLIT_PATH / os.path.basename(filepath).replace("featurized", "train"),
-            data_train,
-        )
-
-        np.save(
-            DATA_SPLIT_PATH / os.path.basename(filepath).replace("featurized", "test"),
-            data_test,
-        )
-
-        if params["calibrate_split"] != 0:
             np.save(
-                DATA_SPLIT_PATH
-                / os.path.basename(filepath).replace("featurized", "calibrate"),
-                data_calibrate,
+                config.DATA_SPLIT_PATH / os.path.basename(filepath).replace("featurized", "train"),
+                data_train,
             )
 
-    else:
+            np.save(
+                config.DATA_SPLIT_PATH / os.path.basename(filepath).replace("featurized", "test"),
+                data_test,
+            )
 
-        if shuffle_files:
-            random.shuffle(filepaths)
+        else:
 
-        # Parameter 'train_split' is used to find out no. of files in training set
-        file_split = int(len(filepaths) * params["train_split"])
-        file_split_calibrate = int(len(filepaths) * params["calibrate_split"])
+            if self.params.split.shuffle_files:
+                random.shuffle(filepaths)
 
-        training_files = []
-        test_files = []
-        calibrate_files = []
+            # Parameter 'train_split' is used to find out no. of files in training set
+            file_split = int(len(filepaths) * self.params.split.train_split)
 
-        if file_split_calibrate == 0:
+            training_files = []
+            test_files = []
+
             training_files = filepaths[:file_split]
             test_files = filepaths[file_split:]
-        else:
-            training_files = filepaths[:file_split]
-            calibrate_files = filepaths[file_split : file_split + file_split_calibrate]
-            test_files = filepaths[file_split + file_split_calibrate :]
 
-        for filepath in filepaths:
+            for filepath in filepaths:
 
-            if filepath in training_files:
-                shutil.copyfile(
-                    filepath,
-                    DATA_SPLIT_PATH
-                    / os.path.basename(filepath).replace("featurized", "train"),
-                )
+                if filepath in training_files:
+                    shutil.copyfile(
+                        filepath,
+                        config.DATA_SPLIT_PATH
+                        / os.path.basename(filepath).replace("featurized", "train"),
+                    )
 
-            elif filepath in test_files:
-                shutil.copyfile(
-                    filepath,
-                    DATA_SPLIT_PATH
-                    / os.path.basename(filepath).replace("featurized", "test"),
-                )
-            elif filepath in calibrate_files:
-                shutil.copyfile(
-                    filepath,
-                    DATA_SPLIT_PATH
-                    / os.path.basename(filepath).replace("featurized", "calibrate"),
-                )
+                elif filepath in test_files:
+                    shutil.copyfile(
+                        filepath,
+                        config.DATA_SPLIT_PATH
+                        / os.path.basename(filepath).replace("featurized", "test"),
+                    )
 
+def main():
+    SplitStage().run()
 
 if __name__ == "__main__":
-
-    np.random.seed(2029)
-
-    split(sys.argv[1])
+    main()

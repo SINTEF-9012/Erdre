@@ -9,6 +9,7 @@ Created:
 
 """
 import json
+import os
 import shutil
 import sys
 
@@ -19,20 +20,16 @@ import plotly
 import plotly.graph_objects as go
 import seaborn as sn
 import tensorflow as tf
-import tensorflow_probability as tfp
 import yaml
-import interpret
-from interpret import set_visualize_provider
-from interpret.provider import InlineProvider
-from interpret.blackbox import LimeTabular
+from codecarbon import track_emissions
 from joblib import load
-from nonconformist.base import RegressorAdapter
-from nonconformist.cp import IcpRegressor
-from nonconformist.nc import AbsErrorErrFunc, NcFactory, RegressorNc
 from plotly.subplots import make_subplots
 from sklearn.base import RegressorMixin
 from sklearn.metrics import (
     accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
     confusion_matrix,
     explained_variance_score,
     mean_absolute_percentage_error,
@@ -41,509 +38,278 @@ from sklearn.metrics import (
 )
 from sklearn.neighbors import KNeighborsRegressor
 from tensorflow.keras import metrics, models
+from scipy.sparse import coo_matrix
+from sklearn.utils.multiclass import unique_labels
 
 import neural_networks as nn
 
-tfk = tf.keras
-tfkl = tf.keras.layers
-tfpl = tfp.layers
-tfd = tfp.distributions
-
 import neural_networks as nn
-from config import (
-    DATA_PATH,
-    INPUT_FEATURES_PATH,
-    INTERVALS_PLOT_PATH,
-    METRICS_FILE_PATH,
-    NON_DL_METHODS,
-    OUTPUT_FEATURES_PATH,
-    PLOTS_PATH,
-    PREDICTION_PLOT_PATH,
-    PREDICTIONS_FILE_PATH,
-    PREDICTIONS_PATH,
-)
+from config import config
+from pipelinestage import PipelineStage
 
-import shap
+@track_emissions(project_name="evaluate")
+class EvaluateStage(PipelineStage):
 
+    def __init__(self):
+        super().__init__(stage_name="evaluate")
 
-# class ConformalPredictionModel(RegressorMixin):
-class ConformalPredictionModel(RegressorAdapter):
-    """Implement custom sklearn model to use with the nonconformist library.
+    def run(self):
 
-    Args:
-        model_filepath (str): Path to ALREADY TRAINED model.
+        if self.params.evaluate.performance_metric == "auto":
+            if self.params.clean.classification:
+                self.params.evaluate.performance_metric = "accuracy"
+            else:
+                self.params.evaluate.performance_metric = "r2"
 
-    """
+        if self.params.evaluate.threshold_for_ensemble_models == "auto":
+            if self.params.clean.classification:
+                self.params.evaluate.threshold_for_ensemble_models = 0.75
+            else:
+                self.params.evaluate.threshold_for_ensemble_models = 0.5
 
-    # def __init__(self, model_filepath):
-    def __init__(self, model):
-        # Load already trained model from h5 file.
-        # self.model = models.load_model(model_filepath)
-        # self.model_filepath = model_filepath
+        test = np.load(config.DATA_COMBINED_TEST_PATH)
+        X_test = test["X"]
+        y_test = test["y"]
+        y_pred_uncertainty = None
 
-        # super(ConformalPredictionModel, self).__init__(models.load_model(model_filepath), fit_params=None)
-        super(ConformalPredictionModel, self).__init__(model)
-
-    def fit(self, X=None, y=None):
-        # We don't do anything here because we are loading an already trained model in __init__().
-        # Still, we need to implement this method so the conformal normalizer
-        # is initialized by nonconformist.
-        pass
-
-    def predict(self, X=None):
-        predictions = self.model.predict(X)
-        predictions = predictions.reshape((predictions.shape[0],))
-
-        return predictions
-
-
-def evaluate(model_filepath, train_filepath, test_filepath, calibrate_filepath):
-    """Evaluate model to estimate power.
-
-    Args:
-        model_filepath (str): Path to model.
-        train_filepath (str): Path to train set.
-        test_filepath (str): Path to test set.
-        calibrate_filepath (str): Path to calibrate set.
-
-    """
-
-    METRICS_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
-
-    # Load parameters
-    params = yaml.safe_load(open("params.yaml"))["evaluate"]
-    params_train = yaml.safe_load(open("params.yaml"))["train"]
-    params_split = yaml.safe_load(open("params.yaml"))["split"]
-    classification = yaml.safe_load(open("params.yaml"))["clean"]["classification"]
-    onehot_encode_target = yaml.safe_load(open("params.yaml"))["clean"][
-        "onehot_encode_target"
-    ]
-    show_inputs = params["show_inputs"]
-    learning_method = params_train["learning_method"]
-
-    test = np.load(test_filepath)
-    X_test = test["X"]
-    y_test = test["y"]
-
-    if show_inputs:
-        inputs = X_test
-    else:
-        inputs = None
-
-    PREDICTIONS_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(y_test).to_csv(PREDICTIONS_PATH / "true_values.csv")
-
-    # pandas data frame to store predictions and ground truth.
-    df_predictions = None
-
-    y_pred = None
-
-    if params_split["calibrate_split"] > 0 and not classification:
-        trained_model = models.load_model(model_filepath)
-        # conformal_pred_model = ConformalPredictionModel(model_filepath)
-        conformal_pred_model = ConformalPredictionModel(trained_model)
-
-        m = nn.cnn(
-            X_test.shape[-2],
-            X_test.shape[-1],
-            output_length=1,
-            kernel_size=params_train["kernel_size"],
-        )
-
-        nc = RegressorNc(
-            conformal_pred_model,
-            err_func=AbsErrorErrFunc(),  # non-conformity function
-            # normalizer_model=KNeighborsRegressor(n_neighbors=15)  # normalizer
-            # normalizer=m
-        )
-
-        # nc = NcFactory.create_nc(conformal_pred_model,
-        #     err_func=AbsErrorErrFunc(),  # non-conformity function
-        #     # normalizer_model=KNeighborsRegressor(n_neighbors=15)  # normalizer
-        #     normalizer_model=m
-        # )
-
-        model = IcpRegressor(nc)
-
-        # Fit the normalizer.
-        train = np.load(train_filepath)
-        X_train = train["X"]
-        y_train = train["y"]
-
-        y_train = y_train.reshape((y_train.shape[0],))
-
-        model.fit(X_train, y_train)
-
-        # Calibrate model.
-        calibrate = np.load(calibrate_filepath)
-        X_calibrate = calibrate["X"]
-        y_calibrate = calibrate["y"]
-        y_calibrate = y_calibrate.reshape((y_calibrate.shape[0],))
-        model.calibrate(X_calibrate, y_calibrate)
-
-        print(f"Calibration: {X_calibrate.shape}")
-
-        # Set conformal prediction error. This should be a parameter specified by the user.
-        error = 0.05
-
-        # Predictions will contain the intervals. We need to compute the middle
-        # points to get the actual predictions y.
-        predictions = model.predict(X_test, significance=error)
-
-        # Compute middle points.
-        y_pred = predictions[:, 0] + (predictions[:, 1] - predictions[:, 0]) / 2
-
-        # Reshape to put it in the same format as without calibration set.
-        y_pred = y_pred.reshape((y_pred.shape[0], 1))
-
-        # Build data frame with predictions.
-        my_results = list(
-            zip(
-                np.reshape(y_test, (y_test.shape[0],)),
-                np.reshape(y_pred, (y_pred.shape[0],)),
-                predictions[:, 0],
-                predictions[:, 1],
-            )
-        )
-
-        df_predictions = pd.DataFrame(
-            my_results,
-            columns=["ground_truth", "predicted", "lower_bound", "upper_bound"],
-        )
-
-        save_predictions(df_predictions)
-
-        plot_confidence_intervals(df_predictions)
-
-    else:
-        if learning_method in NON_DL_METHODS:
-            model = load(model_filepath)
-            y_pred = model.predict(X_test)
-        elif learning_method == "brnn":
-            model = nn.brnn(
-                data_size=X_test.shape[0],
-                window_size=X_test.shape[1],
-                feature_size=X_test.shape[2],
-                # hidden_size=params_train["hidden_size"],
-                batch_size=params_train["batch_size"],
-            )
-            model.load_weights(model_filepath)
-            # X_test[300:305, :, :] = 3
-            signal_start = 1000
-            signal_end = 500
-            # for i in range(signal_start, signal_start+signal_end):
-            #     # Add Noise to right half of X
-            #     # np_X_test[300:600, signal] += np.random.normal(0, np.std(np_X_test[:, signal]), 300)
-            #     # np_X_test[300:600, i] += np.random.normal(0, np.std(np_X_test[:, i]), 300)
-            #
-            #     # Add drift to right half of X
-            #     drift_range = 0.2 * np.max(X_test[:,-1, 0]) - np.min(X_test[:,-1, 0])
-            #     #print(drift_range)
-            #     # np_X_test[300:600, i] += [-1,1][random.randrange(2)]* np.linspace(0, drift_range, 300)
-            #     X_test[-signal_end:,0, 0] += np.linspace(0, drift_range, signal_end)
-
-            y_pred = model(X_test)
-            assert isinstance(y_pred, tfd.Distribution)
-
-            mean = y_pred.mean().numpy()
-
-            aleatoric, epistemic = compute_uncertainty(
-                model=model, test_data=X_test, iterations=200
-            )
-
-            total_unc = np.sqrt(aleatoric**2 + epistemic**2)
-
-            prediction_interval_plot(
-                true_data=y_test[:, -1],
-                predicted_mean=mean,
-                predicted_std=total_unc,
-                plot_path=PLOTS_PATH,
-                file_name="confidence_plot.html",
-                experiment_length=len(X_test),
-            )
-        elif learning_method == "bcnn":
-
-            model = nn.bcnn(
-                data_size=X_test.shape[0],
-                window_size=X_test.shape[1],
-                feature_size=X_test.shape[2],
-                batch_size=params_train["batch_size"],
-                kernel_size=params_train["kernel_size"],
-            )
-            model.load_weights(model_filepath)
-
-            input_columns = pd.read_csv(INPUT_FEATURES_PATH, index_col=0)
-            input_columns = [feature for feature in input_columns["0"]]
-            X_test[300:305, :, :] = 3
-            y_pred = model(X_test)
-
-            assert isinstance(y_pred, tfd.Distribution)
-            mean = y_pred.mean().numpy()
-
-            aleatoric, epistemic = compute_uncertainty(
-                model=model, test_data=X_test, iterations=100
-            )
-
-            # uncertainties can be accurately predicted by the superposition of these uncertainties
-            total_unc = np.sqrt(aleatoric**2 + epistemic**2)
-            prediction_interval_plot(
-                true_data=y_test[:, 0],
-                predicted_mean=mean,
-                predicted_std=total_unc,
-                plot_path=PLOTS_PATH,
-                file_name="confidence_plot.html",
-                experiment_length=len(X_test),
-            )
-
-            # Use the training data for deep explainer => can use fewer instances
-            # Fit the normalizer.
+        if self.params.evaluate.show_inputs:
+            inputs = X_test
         else:
-            model = models.load_model(model_filepath)
-            y_pred = model.predict(X_test)
+            inputs = None
 
-        if onehot_encode_target:
+        pd.DataFrame(y_test).to_csv(config.PREDICTIONS_PATH / "true_values.csv")
+
+        if self.params.train.ensemble:
+            model_names = []
+            y_preds = {}
+            metrics = []
+            # info = ". "
+
+            for f in os.listdir(config.MODELS_PATH):
+                if f.startswith("model"):
+                    model_names.append(f)
+
+            model_names = sorted(model_names)
+
+            for name in model_names:
+                method = os.path.splitext(name)[0].split("_")[-1]
+                model = self.load_model(config.MODELS_PATH / name, method)
+
+                y_pred = model.predict(X_test)
+                y_preds[method] = y_pred
+
+            adequate_models = {}
+
+            if self.params.clean.classification:
+
+                if self.params.clean.onehot_encode_target:
+                    y_test = np.argmax(y_test, axis=-1)
+
+                metrics = {}
+
+                for name in model_names:
+                    method = os.path.splitext(name)[0].split("_")[-1]
+                    y_pred = y_preds[method]
+                    accuracy = accuracy_score(y_test, y_pred)
+                    precision = precision_score(y_test, y_pred)
+                    recall = recall_score(y_test, y_pred)
+                    f1 = f1_score(y_test, y_pred)
+
+                    print(f"{name} precision: {precision}")
+                    print(f"{name} recall: {recall}")
+                    print(f"{name} F1: {f1}")
+                    print(f"{name} accuracy: {accuracy}")
+                    metrics[name] = accuracy
+
+                    if accuracy >= self.params.evaluate.threshold_for_ensemble_models:
+                        adequate_models[name] = accuracy
+
+                    y_preds[method + f" ({accuracy:.2f})"] = y_preds.pop(method)
+
+                # plot_prediction(y_test, y_pred, info="Accuracy: {})".format(accuracy))
+                # plot_confusion(y_test, y_pred)
+
+                with open(config.METRICS_FILE_PATH, "w") as f:
+                    json.dump(metrics, f)
+
+            # Regression:
+            else:
+                metrics = {}
+
+                for name in model_names:
+                    method = os.path.splitext(name)[0].split("_")[-1]
+                    print(f"{name}, {method}")
+                    y_pred = y_preds[method]
+                    metrics[name] = {}
+
+                    mse = mean_squared_error(y_test, y_pred)
+                    rmse = mean_squared_error(y_test, y_pred, squared=False)
+                    mape = mean_absolute_percentage_error(y_test, y_pred)
+                    r2 = r2_score(y_test, y_pred)
+
+                    metrics[name]["mse"] = mse
+                    metrics[name]["rmse"] = rmse
+                    metrics[name]["mape"] = mape
+                    metrics[name]["r2"] = r2
+                    # metrics[name] = r2
+
+                    # plot_prediction(y_test, y_pred, inputs=inputs, info=f"(R2: {r2:.2f})")
+                    # plot_true_vs_pred(y_test, y_pred)
+
+                    # print("MSE: {}".format(mse))
+                    # print("RMSE: {}".format(rmse))
+                    # print("MAPE: {}".format(mape))
+                    # print(f"{name} R2: {r2:.3f}")
+
+                    # info += f"{name} {r2:.2f}. "
+                    y_preds[method + f" ({r2:.2f})"] = y_preds.pop(method)
+
+                    for n in y_preds:
+                        print(n)
+                    print("======")
+
+                    if metrics[name][self.params.evaluate.performance_metric] >= self.params.evaluate.threshold_for_ensemble_models:
+                        adequate_models[name] = metrics[name][self.params.evaluate.performance_metric]
+
+
+                # # Only plot predicted sequences if the output samples are sequences.
+                # if len(y_test.shape) > 1 and y_test.shape[1] > 1:
+                #     plot_sequence_predictions(y_test, y_pred)
+
+                # with open(config.METRICS_FILE_PATH, "w") as f:
+                #     json.dump(dict(mse=mse, rmse=rmse, mape=mape, r2=r2), f)
+                with open(config.METRICS_FILE_PATH, "w") as f:
+                    json.dump(metrics, f)
+
+
+                with open(config.ADEQUATE_MODELS_PATH / "adequate_models.json", "w") as f:
+                    json.dump(adequate_models, f)
+
+                # save_predictions(pd.DataFrame(y_pred))
+
+            plot_prediction(y_test, y_preds, inputs=inputs, info="ensemble")
+
+            return 0
+
+        # pandas data frame to store predictions and ground truth.
+        df_predictions = None
+
+        y_pred = None
+
+        if self.params.train.learning_method in config.NON_DL_METHODS:
+            model = load(config.MODELS_FILE_PATH)
+            y_pred = model.predict(X_test)
+        else:
+            model = models.load_model(config.MODELS_FILE_PATH)
+
+            if self.params.evaluate.dropout_uncertainty_estimation and not self.params.train.ensemble:
+                predictions = []
+
+                for i in range(self.params.evaluate.uncertainty_estimation_sampling_size):
+                    predictions.append(model(X_test, training=True))
+
+                predictions = np.stack(predictions, -1)
+                mean = np.mean(predictions, axis=-1)
+
+                if self.params.clean.classification:
+                    entropy = - np.sum(predictions * np.log(predictions + 1e-15), axis=-1)
+                    uncertainty = entropy
+                else:
+                    uncertainty = np.std(predictions, axis=-1)
+
+                y_pred = mean
+                y_pred_uncertainty = uncertainty
+                pd.DataFrame(y_pred_uncertainty).to_csv(config.PREDICTIONS_PATH /
+                        "predictions_uncertainty.csv")
+            else:
+                y_pred = model.predict(X_test)
+
+        # Check if the shape of y_pred matches y_test, and if not, reshape y_pred
+        # to match y_test.
+        if y_pred.shape != y_test.shape:
+            if len(y_test.shape) == 1:
+                y_pred = y_pred.reshape(-1)
+            elif len(y_test.shape) == 2:
+                y_pred = y_pred.reshape(-1, y_test.shape[1])
+            else:
+                raise ValueError("y_test has more than 2 dimensions.")
+
+        if self.params.clean.onehot_encode_target:
             y_pred = np.argmax(y_pred, axis=-1)
-        elif classification:
+        elif self.params.clean.classification:
             y_pred = np.array((y_pred > 0.5), dtype=np.int)
 
-    if classification:
+        if self.params.clean.classification:
 
-        if onehot_encode_target:
-            y_test = np.argmax(y_test, axis=-1)
+            if self.params.clean.onehot_encode_target:
+                y_test = np.argmax(y_test, axis=-1)
 
-        accuracy = accuracy_score(y_test, y_pred)
-        print(f"Accuracy: {accuracy}")
+            accuracy = accuracy_score(y_test, y_pred)
+            print(f"Accuracy: {accuracy}")
 
-        plot_prediction(y_test, y_pred, info="Accuracy: {})".format(accuracy))
+            plot_prediction(y_test, y_pred, info="Accuracy: {})".format(accuracy))
 
-        plot_confusion(y_test, y_pred)
+            plot_confusion(y_test, y_pred, y_pred_uncertainty)
 
-        with open(METRICS_FILE_PATH, "w") as f:
-            json.dump(dict(accuracy=accuracy), f)
+            with open(config.METRICS_FILE_PATH, "w") as f:
+                json.dump(dict(accuracy=accuracy), f)
 
-
-    # Regression:
-    else:
-
-        if learning_method == "bcnn" or learning_method == "brnn":
-            mse = mean_squared_error(y_test[:, -1], mean[:, -1])
-            rmse = mean_squared_error(y_test[:, -1], mean[:, -1], squared=False)
-            mape = mean_absolute_percentage_error(y_test[:, -1], mean[:, -1])
-            r2 = r2_score(y_test[:, -1], mean[:, -1])
-
-            plot_prediction(
-                y_test[:, -1], mean[:, -1], inputs=inputs, info="(R2: {})".format(r2)
-            )
-            plot_true_vs_pred(y_test[:, -1], mean[:, -1])
+        # Regression:
         else:
+            print(y_test)
+            print(y_pred)
+            print(y_test.shape)
+            print(y_pred.shape)
+            print("========")
             mse = mean_squared_error(y_test, y_pred)
             rmse = mean_squared_error(y_test, y_pred, squared=False)
             mape = mean_absolute_percentage_error(y_test, y_pred)
             r2 = r2_score(y_test, y_pred)
 
-            plot_prediction(y_test, y_pred, inputs=inputs, info=f"(R2: {r2:.2f})")
+            plot_prediction(y_test, y_pred, inputs=inputs, info=f"(R2: {r2:.2f})",
+                            y_pred_uncertainty=y_pred_uncertainty)
             plot_true_vs_pred(y_test, y_pred)
 
-        print("MSE: {}".format(mse))
-        print("RMSE: {}".format(rmse))
-        print("MAPE: {}".format(mape))
-        print("R2: {}".format(r2))
+            print("MSE: {}".format(mse))
+            print("RMSE: {}".format(rmse))
+            print("MAPE: {}".format(mape))
+            print("R2: {}".format(r2))
 
-        # Only plot predicted sequences if the output samples are sequences.
-        if len(y_test.shape) > 1 and y_test.shape[1] > 1:
-            plot_sequence_predictions(y_test, y_pred)
+            # Only plot predicted sequences if the output samples are sequences.
+            if len(y_test.shape) > 1 and y_test.shape[1] > 1:
+                plot_sequence_predictions(y_test, y_pred)
 
-        with open(METRICS_FILE_PATH, "w") as f:
-            json.dump(dict(mse=mse, rmse=rmse, mape=mape, r2=r2), f)
+            with open(config.METRICS_FILE_PATH, "w") as f:
+                json.dump(dict(mse=mse, rmse=rmse, mape=mape, r2=r2), f)
 
-    # Print feature importances of the ML algorithm supports it.
-    try:
-        feature_importances = model.feature_importances_
-        imp = list()
-        for i, f in enumerate(feature_importances):
-            imp.append((f, i))
+        # Print feature importances of the ML algorithm supports it.
+        try:
+            feature_importances = model.feature_importances_
+            imp = list()
+            for i, f in enumerate(feature_importances):
+                imp.append((f, i))
 
-        sorted_feature_importances = sorted(imp)[::-1]
-        input_columns = pd.read_csv(INPUT_FEATURES_PATH, header=None)
+            sorted_feature_importances = sorted(imp)[::-1]
+            input_columns = pd.read_csv(config.INPUT_FEATURES_PATH, header=None)
 
-        print("-------------------------")
-        print("Feature importances:")
+            print("-------------------------")
+            print("Feature importances:")
 
-        for i in range(len(sorted_feature_importances)):
-            print(
-                f"Feature: {input_columns.iloc[i,0]}. Importance: {feature_importances[i]:.2f}"
-            )
+            for i in range(len(sorted_feature_importances)):
+                print(
+                    f"Feature: {input_columns.iloc[i,0]}. Importance: {feature_importances[i]:.2f}"
+                )
 
-        print("-------------------------")
-    except:
-        pass
+            print("-------------------------")
+        except:
+            pass
 
-    save_predictions(pd.DataFrame(y_pred))
+        save_predictions(pd.DataFrame(y_pred))
 
-    # if learning_method.lower() == "explainableboosting":
-    #     explain_glassbox(model)
-    # else:
-    #     explain_blackbox(model, X_test, X_test[:10], y_test[:10])
-
-
-    # ==========================================
-    # TODO: Fix SHAP code
-    # explainer = shap.TreeExplainer(model, X_test[:10])
-    # shap_values = explainer.shap_values(X_test[:10])
-    # plt.figure()
-    # shap.summary_plot(shap_values[0][:,0,:], X_test[:10][:,0,:])
-    # shap.image_plot([shap_values[i][0] for i in range(len(shap_values))], X_test[:10])
-    # shap.force_plot(explainer.expected_value[0], shap_values[0][0])
-
-    # plt.savefig("test.png")
-
-    # feature_importances = model.feature_importances_
-    # imp = list()
-    # for i, f in enumerate(feature_importances):
-    #     imp.append((f,i))
-
-    # sorted_feature_importances = sorted(imp)
-
-    # print("Feature importances")
-    # print(sorted_feature_importances)
-    # ==========================================
-    # shap.initjs()
-    # """
-
-
-    """
-    input_columns = pd.read_csv(INPUT_FEATURES_PATH, header=None)
-    input_columns = input_columns.iloc[1:,1].to_list()
-
-    train = np.load(train_filepath)
-    X_train = train["X"]
-    X_summary = shap.kmeans(X_train, 20)
-    ex = shap.KernelExplainer(model.predict, X_summary)
-    # ex = shap.KernelExplainer(model.predict, shap.sample(X_train, 100))
-    # ex = shap.TreeExplainer(model)
-    # shap_values = ex.shap_values(shap.sample(X_test, 10))
-    shap_values = ex.shap_values(X_test[0])
-
-    # Single prediction
-    shap.force_plot(ex.expected_value, shap_values, np.around(X_test[0], decimals=2), show=True,
-            matplotlib=True, feature_names=input_columns)
-
-            # feature_names=input_columns)
-
-    plt.savefig(PLOTS_PATH / "shap_force_plot_single.png")
-
-    # plt.figure()
-    # shap.force_plot(ex.expected_value, shap_values[0], shap.sample(X_test, 10), show=False,
-            # matplotlib=True, feature_names=input_columns)
-    # plt.savefig(PLOTS_PATH / "shap_force_plot_single.png")
-
-    X_values = X_test
-    shap_values = ex.shap_values(X_test)
-    shap.summary_plot(shap_values, X_values,
-            feature_names=input_columns, plot_size=(8,5), show=False)
-    plt.savefig(PLOTS_PATH / "shap_summary_plot.png", bbox_inches='tight', dpi=300)
-    """
-
-def explain_blackbox(model, X, X_sample, y_sample):
-
-    lime = LimeTabular(predict_fn=model.predict, data=X)
-    lime_local = lime.explain_local(X_sample, y_sample)
-    interpret.show(lime_local)
-
-def explain_glassbox(model):
-
-    # set_visualize_provider(InlineProvider())
-
-    model_global = model.explain_global()
-    # with open("htmltest.html", "w") as f:
-    #     f.write(interpret.show(model_global))
-    interpret.show(model_global)
-
-
-def compute_uncertainty(model, test_data, iterations=100):
-    """A function to compute aleatoric and epistemic uncertainty of a probabilistic Gaussain model
-    based on Ensemble method
-
-    Args:
-        model: Probabilistic gaussian model
-        test_data: test dataset
-        iterations: number of iteration
-
-    Returns: (tuple of of ndarray) representing aleatoric and epistemic uncertainty of the model
-
-    """
-    means = []
-    stddevs = []
-    for _ in range(iterations):
-        means.append(model(test_data).mean().numpy())
-        stddevs.append(model(test_data).stddev().numpy())
-
-    means = np.concatenate(means, axis=1)
-    stddevs = np.concatenate(stddevs, axis=1)
-    overall_mean = np.mean(means, axis=1)
-
-    aleatoric = np.mean(stddevs, axis=1)
-    epistemic = np.sqrt(np.mean(means**2, axis=1) - overall_mean**2)
-
-    return aleatoric, epistemic
-
-
-def coverage_probability(y_true, y_pred, uncertainty_estimate, coverage_factor=1.96):
-    """
-    A function to measure the coverage probability(level of confidence) of a confidence interval.
-
-    The coverage probability for an interval estimate is the proportion of
-    instances in which the sample statistic obtained from infinite independent and identical
-    replications of the experiment is contained. You want coverage probability equal to the nominal confidence of the interval estimate
-
-    Args:
-        y_true: groubd truth of test dataset
-        y_pred: mean prediction
-        uncertainty_estimate: total estimate of uncertainty
-        coverage_factor: (float default  1.96)coverage factor
-
-    Returns:
-
-    """
-    upper = (
-        y_pred + coverage_factor * uncertainty_estimate
-    )  # upper bound of confidence interval
-    lower = (
-        y_pred - coverage_factor * uncertainty_estimate
-    )  # lower bound of confidence intrval
-    within_confidence_interval = np.zeros(len(y_true))
-    for i in range(len(y_true)):
-        if lower[i] < y_true[i] and upper[i] > y_true[i]:
-            within_confidence_interval[i] = 1
-    return 100 * np.mean(within_confidence_interval)
-
-
-def coverage_probability2(samples, y_true, alpha=0.05):
-    """
-    A function to measure the coverage of 100*(1- alpha)% interval
-    Args:
-        samples: (ndarray) samples(more than 1) from predicted distribution.
-        y_true:  A true sample, ground truth of training dataset
-        alph: (float: optinal,default:0.05)  It represent  the probability of making a wrong decision
-
-    Returns:
-
-    """
-    q0 = (100.0 - 100 * (1 - alpha)) / 2.0  # lower percentile
-    q1 = 100.0 - q0  # upper percentile
-    within_confidence_interval = np.zeros(len(y_true))
-    for i in range(len(y_true)):
-        lower_bound = np.percentile(samples[:, i], q0)
-        upper_bound = np.percentile(samples[:, i], q1)
-        if lower_bound <= y_true[i] < upper_bound:
-            within_confidence_interval[i] = 1
-    return 100 * np.mean(within_confidence_interval)
-
-
-def plot_confusion(y_test, y_pred):
+def plot_confusion(y_test, y_pred, y_pred_uncertainty=None):
     """Plotting confusion matrix of a classification model."""
 
-    output_columns = np.array(pd.read_csv(OUTPUT_FEATURES_PATH, index_col=0)).reshape(
+    output_columns = np.array(pd.read_csv(config.OUTPUT_FEATURES_PATH, index_col=0)).reshape(
         -1
     )
 
@@ -561,8 +327,49 @@ def plot_confusion(y_test, y_pred):
     df_confusion.columns.name = "Pred"
     plt.figure(figsize=(10, 7))
     sn.heatmap(df_confusion, cmap="Blues", annot=True, annot_kws={"size": 16})
-    plt.savefig(PLOTS_PATH / "confusion_matrix.png")
+    plt.savefig(config.PLOTS_PATH / "confusion_matrix.png")
 
+    if y_pred_uncertainty is not None:
+
+        # Take the average of the entropy per class
+        y_pred_uncertainty = np.mean(y_pred_uncertainty, axis=1)
+
+        cm = coo_matrix(
+                (y_pred_uncertainty, (y_test, y_pred)),
+                shape=(n_labels, n_labels)
+        )
+
+        combined_arr = np.stack((y_test, y_pred), axis=1)
+
+        unique_predictions, counts = np.unique(combined_arr, axis=0, return_counts=True)
+        u_true = unique_predictions[:,0]
+        u_pred = unique_predictions[:,1]
+
+        cm_count = coo_matrix(
+                (counts, (u_true, u_pred)),
+                shape=(n_labels, n_labels)
+        )
+
+        cm = cm / cm_count
+        
+        cm = pd.DataFrame(cm)
+
+        df_confusion.index.name = "True"
+        df_confusion.columns.name = "Pred"
+
+        plt.figure(figsize=(10, 7))
+        sn.heatmap(
+                cm, 
+                cmap="Reds", 
+                annot=df_confusion, 
+                # annot=True,
+                annot_kws={"size": 14},
+                xticklabels=labels,
+                yticklabels=labels,
+        )
+        plt.tight_layout()
+        plt.savefig(config.PLOTS_PATH / "probablistic_confusion_matrix.png")
+        # plt.show()
 
 def save_predictions(df_predictions):
     """Save the predictions along with the ground truth as a csv file.
@@ -572,9 +379,8 @@ def save_predictions(df_predictions):
 
     """
 
-    PREDICTIONS_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    df_predictions.to_csv(PREDICTIONS_FILE_PATH, index=False)
+    df_predictions.to_csv(config.PREDICTIONS_FILE_PATH, index=False)
 
 
 def plot_confidence_intervals(df):
@@ -585,7 +391,6 @@ def plot_confidence_intervals(df):
 
     """
 
-    INTERVALS_PLOT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     x = [x for x in range(1, df.shape[0] + 1, 1)]
 
@@ -619,7 +424,7 @@ def plot_confidence_intervals(df):
         )
     )
 
-    fig.write_html(str(PLOTS_PATH / "intervals.html"))
+    fig.write_html(str(config.PLOTS_PATH / "intervals.html"))
 
 
 def plot_true_vs_pred(y_true, y_pred):
@@ -628,10 +433,10 @@ def plot_true_vs_pred(y_true, y_pred):
     plt.scatter(y_true, y_pred)
     plt.xlabel("True values")
     plt.ylabel("Predicted values")
-    plt.savefig(PLOTS_PATH / "true_vs_pred.png")
+    plt.savefig(config.PLOTS_PATH / "true_vs_pred.png")
 
 
-def plot_prediction(y_true, y_pred, inputs=None, info=""):
+def plot_prediction(y_true, y_pred, inputs=None, info="", y_pred_uncertainty=None):
     """Plot the prediction compared to the true targets.
 
     Args:
@@ -641,31 +446,53 @@ def plot_prediction(y_true, y_pred, inputs=None, info=""):
         inputs (array): Inputs corresponding to the targets passed. If
             provided, the inputs will be plotted together with the targets.
         info (str): Information to include in the title string.
+        y_pred_uncertainty (array): Uncertainty of the true targets.
+
+    Returns:
+        fig (plotly figure): Plotly figure.
 
     """
 
-    PREDICTION_PLOT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if isinstance(y_pred, dict):
+        ensemble = True
+    else:
+        ensemble = False
+
 
     x = np.linspace(0, y_true.shape[0] - 1, y_true.shape[0])
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
     if len(y_true.shape) > 1:
         y_true = y_true[:, -1].reshape(-1)
-    if len(y_pred.shape) > 1:
-        y_pred = y_pred[:, -1].reshape(-1)
+    if ensemble:
+        for arr in y_pred:
+            if len(y_pred[arr].shape) > 1:
+                y_pred[arr] = y_pred[arr][:, -1].reshape(-1)
+    else:
+        if len(y_pred.shape) > 1:
+            y_pred = y_pred[:, -1].reshape(-1)
+        if y_pred_uncertainty is not None and len(y_pred_uncertainty.shape) > 1:
+            y_pred_uncertainty = y_pred_uncertainty[:, -1].reshape(-1)
 
     fig.add_trace(
         go.Scatter(x=x, y=y_true, name="true"),
         secondary_y=False,
     )
 
-    fig.add_trace(
-        go.Scatter(x=x, y=y_pred, name="pred"),
-        secondary_y=False,
-    )
+    if ensemble:
+        for arr in y_pred:
+            fig.add_trace(
+                go.Scatter(x=x, y=y_pred[arr], name=arr),
+                secondary_y=False,
+            )
+    else:
+        fig.add_trace(
+            go.Scatter(x=x, y=y_pred, name="pred"),
+            secondary_y=False,
+        )
 
     if inputs is not None:
-        input_columns = pd.read_csv(INPUT_FEATURES_PATH, index_col=0)
+        input_columns = pd.read_csv(config.INPUT_FEATURES_PATH, index_col=0)
         input_columns = [feature for feature in input_columns["0"]]
 
         if len(inputs.shape) == 3:
@@ -686,12 +513,34 @@ def plot_prediction(y_true, y_pred, inputs=None, info=""):
                     secondary_y=True,
                 )
 
+    if y_pred_uncertainty is not None:
+        fig.add_trace(
+            go.Scatter(
+                name="Uncertainty bottom",
+                x=x,
+                y=y_pred - 1.96*y_pred_uncertainty,
+                line=dict(width=0),
+                showlegend=False,
+            ),
+        )
+        fig.add_trace(
+            go.Scatter(
+                name="Uncertainty",
+                x=x,
+                y=y_pred + 1.96*y_pred_uncertainty,
+                line=dict(width=0),
+                fillcolor="rgba(68, 68, 68, 0.3)",
+                fill="tonexty",
+                showlegend=True,
+            ),
+        )
+
     fig.update_layout(title_text="True vs pred " + info)
     fig.update_xaxes(title_text="time step")
     fig.update_yaxes(title_text="target unit", secondary_y=False)
     fig.update_yaxes(title_text="scaled units", secondary_y=True)
 
-    fig.write_html(str(PLOTS_PATH / "prediction.html"))
+    fig.write_html(str(config.PLOTS_PATH / "prediction.html"))
 
     # fig.update_traces(line=dict(width=0.8))
     # fig.write_image("plot.pdf", height=270, width=560)
@@ -739,98 +588,11 @@ def plot_sequence_predictions(y_true, y_pred):
             )
         )
 
-    PREDICTION_PLOT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    fig.write_html(str(PLOTS_PATH / "prediction_sequences.html"))
+    fig.write_html(str(config.PLOTS_PATH / "prediction_sequences.html"))
 
-
-def prediction_interval_plot(
-    true_data,
-    predicted_mean,
-    predicted_std,
-    plot_path,
-    file_name="Uncertainty_plot.html",
-    experiment_length=5000,
-):
-    """This function plots 95% prediction interval for bayesian neural network with gaussain output
-
-    Args:
-        true_data:  (ndarray) label of test dataset
-        predicted_mean:  (ndarray) mean of predicted test data
-        predicted_std:  (ndarray) standerd deviation of predicted test data
-        plot_path: (path object) path to where the plot to be saved
-        file_name: (str) name of saved plot
-        experiment_length: length of plot along x-axis
-
-    Returns: None
-
-    """
-    x_idx = np.arange(0, experiment_length, 1)
-    fig = go.Figure(
-        [
-            go.Scatter(
-                name="Original measurement",
-                x=x_idx,
-                y=np.squeeze(true_data[0:experiment_length]),
-                mode="lines",
-                line=dict(color="rgb(31, 119, 180)"),
-            ),
-            go.Scatter(
-                name="predicted values ",
-                x=x_idx,
-                y=np.squeeze(predicted_mean[0:experiment_length]),
-                mode="lines",
-                # marker=dict(color="#444"),
-                line=dict(color="rgb(255, 10, 10)"),
-                showlegend=True,
-            ),
-            go.Scatter(
-                name="95% prediction interval",
-                x=x_idx,
-                y=np.squeeze(predicted_mean[0:experiment_length])
-                - 1.96 * predicted_std[0:experiment_length],
-                mode="lines",
-                marker=dict(color="#444"),
-                line=dict(width=0),
-                showlegend=False,
-            ),
-            go.Scatter(
-                name="95% prediction interval",
-                x=x_idx,
-                y=np.squeeze(predicted_mean[0:experiment_length])
-                + 1.96 * predicted_std[0:experiment_length],
-                marker=dict(color="#444"),
-                line=dict(width=0),
-                mode="lines",
-                fillcolor="rgba(68, 68, 68, 0.3)",
-                fill="tonexty",
-                showlegend=True,
-            ),
-        ]
-    )
-    fig.update_layout(
-        yaxis_title="target vs predicted", title="Uncertainty estimation", hovermode="x"
-    )
-    # fig.update_yaxes(range=[-10, 10])
-    # fig.update(layout_yaxis_range=[-5, 5])
-    # fig.show()
-
-    if plot_path is not None:
-        fig.write_html(str(plot_path / file_name))
-
+def main():
+    EvaluateStage().run()
 
 if __name__ == "__main__":
-
-    if len(sys.argv) < 3:
-        try:
-            evaluate(
-                "assets/models/model.h5",
-                "assets/data/combined/train.npz",
-                "assets/data/combined/test.npz",
-                "assets/data/combined/calibrate.npz",
-            )
-        except:
-            print("Could not find model and test set.")
-            sys.exit(1)
-    else:
-        evaluate(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+    main()

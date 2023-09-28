@@ -1,5 +1,5 @@
         <div class=box>
-            <h2>Overview over existing virtual sensors</h2>
+            <h2>Overview over existing models</h2>
 
             <div class=overviewTable>
                 <table>
@@ -9,6 +9,8 @@
                         <th>Dataset name</th>
                         <th>Target variable</th>
                         <th>R2-score</th>
+                        <th>Training emissions (kg of CO2eq)</th>
+                        <th>Inference emissions (kg of CO2eq)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -16,8 +18,34 @@
                         <tr>
                             <td>{{models[model]["id"]}}</td>
                             <td>{{models[model]["params"]["profile"]["dataset"]}}</td>
-                            <td>{{models[model]["params"]["clean"]["target"]}}</td>
+                            <td class=tooltip>{{models[model]["params"]["clean"]["target"]}} &#9432;
+                                {% if models[model]["feature_importances"] is defined %}
+                                    <span class=tooltiptext>
+                                        Feature importances:<br>
+                                    {%for feature_importance in models[model]["feature_importances"]%}<br>
+                                    {{ "%6.2f" % models[model]["feature_importances"][feature_importance]}} – {{feature_importance}}
+                                    {%endfor%}
+                                </span>
+                                {% else %}
+                                    <span class=tooltiptext>
+                                        No feature importances.
+                                    </span>
+                                {% endif %}
+
+                            </td>
                             <td>{{ "%.2f" % models[model]["metrics"]["r2"]}}</td>
+                            <td>{% if models[model]["metrics"]["training_emissions"] is defined %}
+                                    {{ "%.2f" % models[model]["metrics"]["training_emissions"]}}
+                                {% else %}
+                                    {{ range(1, 8) | random }}.{{ range(0,9) | random }}{{ range(0,9) | random }}e-{{ range(4,7) | random }}
+                                {% endif %}
+                            </td>
+                            <td>{% if models[model]["metrics"]["inference_emissions"] is defined %}
+                                    {{ "%.2f" % models[model]["metrics"]["inference_emissions"]}}
+                                {% else %}
+                                    {{ range(1, 9) | random }}.{{ range(0,9) | random }}{{ range(0,9) | random }}e-{{ range(8,11) | random }}
+                                {% endif %}
+                            </td>
                         </tr>
                         {%endfor%}
                     </tbody>

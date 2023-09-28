@@ -15,6 +15,7 @@ import shutil
 import string
 import sys
 import time
+from pathlib import PosixPath
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -75,6 +76,9 @@ def find_files(dir_path, file_extension=[]):
     """
 
     filepaths = []
+
+    if isinstance(dir_path, PosixPath):
+        dir_path = str(dir_path)
 
     if type(file_extension) is not list:
         file_extension = [file_extension]
@@ -191,6 +195,12 @@ def split_sequences(
             seq_y = seq_y.reshape(-1)
         else:
             seq_y = sequences[target_start_ix:target_end_ix, 0]
+
+        # Skip round if target_size is not correct. May happen if target_size
+        # is larger than window_size.
+        if len(seq_y) != target_size:
+            start_idx += window_size - overlap
+            continue
 
         X.append(seq_x)
         y.append(seq_y)

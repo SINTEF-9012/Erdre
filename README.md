@@ -1,14 +1,53 @@
-# Erdre
+# Erdre - Erroneous data repair for Industry 4.0.
 
-Erroneous data repair for Industry 4.0.
+A machine learning pipeline enabling Responsible AI:
 
-This is a project using [DVC](https://dvc.org/) for setting up a flexible and
-robust pipeline for machine learning experiments.
+- **Explainable AI**, using SHAP, LIME or both.
+- **Uncertainty estimation**, using Bayesian dropout for neural networks.
+- **Carbon emissions tracking and reporting**, using [CodeCarbon](https://codecarbon.io/).
 
-In order to get started with Erdre, read our documentation:
-
-1. [Installation](https://sintef-9012.github.io/Erdre/tutorials/01_installation.html)
-2. [Quickstart](https://sintef-9012.github.io/Erdre/tutorials/02_quickstart.html)
-3. [Overview of pipeline](https://sintef-9012.github.io/Erdre/tutorials/03_pipeline.html)
+**Erdre** lets you easily create and evaluate machine learning models for tabular and time series data, with built-in data profiling and feature engineering.
 
 ![Erdre pipeline diagram](docs/img/erdre-pipeline-diagram.png)
+
+## Usage
+
+Tested on:
+
+- Linux
+- macOS
+- Windows with WSL 2
+
+
+1. Clone/download this repository.
+2. Place your datafiles (csv) in a folder with the name of your dataset (`DATASET`) inside `assets/data/raw/`, so the path to the files is `assets/data/raw/[DATASET]/`.
+3. Update `params.yaml` with the name of your dataset (`DATASET`), the target variable, and other configuration parameters.
+4. Build Docker container:
+
+```
+docker build -t d2m -f Dockerfile .
+```
+
+5. Run the container:
+
+```
+docker run -p 5000:5000 -it -v $(pwd)/assets:/usr/d2m/assets -v $(pwd)/.dvc:/usr/d2m/.dvc d2m
+```
+
+6. Open the website at localhost:5000 to use the graphical user interface.
+
+
+### Creating models on the command line
+
+
+7. Copy `params.yaml` from the host to the container (find `CONTAINER_NAME` by running `docker ps`):
+
+```
+docker cp params.yaml  [CONTAINER_NAME]:/usr/d2m/params.yaml
+```
+
+8. Inside the interactive session in the container, run:
+
+```
+docker exec [CONTAINER_NAME] dvc repro
+```

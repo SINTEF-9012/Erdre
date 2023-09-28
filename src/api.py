@@ -27,7 +27,7 @@ import yaml
 from flask_restful import Api, Resource, reqparse
 from plotly.subplots import make_subplots
 
-from config import METRICS_FILE_PATH
+from config import config
 from evaluate import plot_prediction
 from virtualsensor import VirtualSensor
 
@@ -72,7 +72,7 @@ def prediction():
 def get_models():
 
     try:
-        models = json.load(open("models.json"))
+        models = json.load(open(config.API_MODELS_PATH))
     except:
         models = {}
 
@@ -83,7 +83,7 @@ class CreateModel(Resource):
     def get(self):
 
         try:
-            models = json.load(open("models.json"))
+            models = json.load(open(config.API_MODELS_PATH))
             return models, 200
         except:
             return {"message": "No models exist."}, 401
@@ -117,18 +117,28 @@ class CreateModel(Resource):
         # Run DVC to create model.
         subprocess.run(["dvc", "repro"], check=True)
 
-        metrics = json.load(open(METRICS_FILE_PATH))
+        metrics = json.load(open(config.METRICS_FILE_PATH))
         model_metadata["metrics"] = metrics
 
+        if params["explain"]["generate_explanations"]:
+            feature_importances = pd.read_csv(config.SHAP_IMPORTANCES_PATH)
+            feature_importances = feature_importances.sort_values(by="SHAP",
+                    ascending=False)
+            feature_importances = feature_importances.head(10)
+            feature_importances = dict(zip(
+                feature_importances["feature"],
+                feature_importances["SHAP"]))
+            model_metadata["feature_importances"] = feature_importances
+
         try:
-            models = json.load(open("models.json"))
+            models = json.load(open(config.API_MODELS_PATH))
         except:
             models = {}
 
         models[model_id] = model_metadata
         print(models)
 
-        json.dump(models, open("models.json", "w+"))
+        json.dump(models, open(config.API_MODELS_PATH, "w+"))
 
         return flask.redirect("create_model_form")
 
@@ -185,6 +195,8 @@ class InferGUI(Resource):
                 )
             except:
                 pass
+
+
 
             fig.add_trace(
                 go.Scatter(x=x, y=y_pred, name="pred"),
