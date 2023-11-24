@@ -1,5 +1,11 @@
 # Erdre - Erroneous data repair for Industry 4.0.
 
+---
+
+**UPDATE**: Erdre has been forked to [d2m](https://github.com/SINTEF-9012/d2m), where we continue the development of a more general machine learning pipeline for tabular and time series data, expanding beyond the scope of erroneous data repair.
+
+---
+
 A machine learning pipeline enabling Responsible AI:
 
 - **Explainable AI**, using SHAP, LIME or both.
